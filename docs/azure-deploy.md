@@ -69,9 +69,18 @@ az containerapp exec -g vanakkamiq-rg -n vanakkamiq --command "python -m app.cli
 
 Then sign in at `<appUrl>/platform` and use **Add restaurant**.
 
-## 7. Automatic deploys from GitHub
+## 7. Deploying a new version
 
-`.github/workflows/deploy.yml` runs the tests on every push and pull request. On every push to `main`, it builds a new image in Azure and rolls it out, then checks `/healthz`.
+Pushes to GitHub never deploy. `.github/workflows/deploy.yml` only runs the tests on every push and pull request.
+
+**Manual deploy from your machine** (the tests run inside the build; a failing test stops it):
+
+```bash
+az acr build -r <acrName> -t vanakkamiq:v7 .
+az containerapp update -g vanakkamiq-rg -n vanakkamiq --image <acrName>.azurecr.io/vanakkamiq:v7
+```
+
+**Optional: deploy from GitHub with a button.** After the one-time setup below, go to Actions → "Test and deploy" → Run workflow on `main`. It builds the image in Azure, rolls it out and checks `/healthz`.
 
 One-time setup (creates an Azure identity that only this repository's `production` environment can use, with no stored password, and saves its IDs in GitHub):
 

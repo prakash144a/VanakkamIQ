@@ -1,0 +1,67 @@
+# Test every push and pull request; deploy to Azure on every push to main.
+#
+# One-time setup: scripts/setup-github-deploy.sh (creates an Azure identity that GitHub
+# signs in as, without stored passwords, and saves these settings in the repository):
+#   secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   variables: AZURE_RESOURCE_GROUP, AZURE_ACR_NAME, AZURE_CONTAINER_APP
+# App secrets (database URL, OpenAI keys) stay on the Container App; this workflow only ships new images.
+
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest -q
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false  # never stop a deploy halfway
+    permissions:
+      contents: read
+      id-token: write  # lets GitHub sign in to Azure without a stored password
+    env:
+      IMAGE: ${{ vars.AZURE_ACR_NAME }}.azurecr.io/vanakkamiq:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build image in Azure (runs the tests again inside the build)
+        run: az acr build -r "${{ vars.AZURE_ACR_NAME }}" -t "vanakkamiq:${{ github.sha }}" -t vanakkamiq:latest .
+
+      - name: Deploy the new image
+        run: |
+          az containerapp update -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_CONTAINER_APP }}" \
+            --image "$IMAGE" --output none
+
+      - name: Check the app is healthy
+        run: |
+          FQDN=$(az containerapp show -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_CONTAINER_APP }}" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors "https://$FQDN/healthz"
+          echo "Deployed $IMAGE to https://$FQDN" >> "$GITHUB_STEP_SUMMARY"

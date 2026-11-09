@@ -1,0 +1,54 @@
+# Starters
+Medu Vada (2 pcs) | 6.99 | vegetarian | aka: vada, medhu vada, urad vada | Dip: Sambar, Coconut Chutney, Both
+Vegetable Samosa (2 pcs) | 5.99 | vegetarian | aka: samosa, samosas
+Gobi 65 | 10.99 | vegetarian, spicy | aka: cauliflower 65, gobi sixty five | Spice level*: Mild, Medium, Hot
+Chicken 65 | 12.99 | spicy | aka: chicken sixty five | Spice level*: Mild, Medium, Hot
+Chilli Paneer | 12.49 | vegetarian | aka: paneer chilli | Style*: Dry, Gravy | Spice level*: Mild, Medium, Hot
+
+# Dosa
+Plain Dosa | 9.99 | vegetarian | aka: sada dosa, plain dosai | Add-ons (up to 2): Ghee roast +1.50, Extra chutney +1.00
+Masala Dosa | 11.99 | vegetarian | aka: masala dosai | Add-ons (up to 2): Ghee roast +1.50, Cheese +2.00
+Mysore Masala Dosa | 12.99 | vegetarian, spicy | aka: mysore dosa | Spice level*: Medium, Hot
+Onion Rava Dosa | 12.49 | vegetarian | aka: rava dosa, onion rava, rava dosai
+Paneer Dosa | 13.49 | vegetarian | aka: paneer dosai
+
+# Idli & Uttapam
+Idli (3 pcs) | 7.99 | vegetarian | aka: idly, idlis | Served with*: Sambar & Chutney, Sambar only, Chutney only
+Ghee Podi Idli | 9.49 | vegetarian | aka: podi idli, gun powder idli
+Onion Uttapam | 11.49 | vegetarian | aka: onion uthappam, uttapam
+Mixed Vegetable Uttapam | 11.99 | vegetarian | aka: veg uttapam, vegetable uthappam
+
+# Biryani
+Chicken Biryani | 15.99 | spicy | aka: chicken biriyani, chicken dum biryani | Spice level*: Mild, Medium, Hot | Add-ons (up to 2): Extra raita +1.50, Boiled egg +2.00
+Goat Biryani | 18.99 | spicy | aka: mutton biryani, goat biriyani | Spice level*: Mild, Medium, Hot | Add-ons (up to 2): Extra raita +1.50, Boiled egg +2.00
+Egg Biryani | 13.99 | spicy | aka: muttai biryani, egg biriyani | Spice level*: Mild, Medium, Hot
+Vegetable Biryani | 13.99 | vegetarian | aka: veg biryani, veg biriyani | Spice level*: Mild, Medium, Hot | Add-ons: Extra raita +1.50
+
+# Curries
+Chettinad Chicken | 16.99 | spicy | aka: chicken chettinad | Spice level*: Medium, Hot, Extra hot
+Goat Pepper Fry | 18.49 | spicy | aka: mutton pepper fry, mutton chukka | Spice level*: Medium, Hot, Extra hot
+Fish Curry | 17.49 | spicy | aka: meen kuzhambu, fish kulambu | Spice level*: Mild, Medium, Hot
+Paneer Butter Masala | 14.99 | vegetarian | aka: paneer makhani, butter paneer | Spice level*: Mild, Medium, Hot
+Chana Masala | 12.99 | vegetarian, vegan | aka: chole, chickpea curry | Spice level*: Mild, Medium, Hot
+Vegetable Kurma | 12.99 | vegetarian | aka: veg korma, veg kurma
+
+# Breads & Rice
+Parotta (2 pcs) | 5.99 | vegetarian | aka: paratha, porotta, kerala parotta
+Butter Naan | 3.49 | vegetarian | aka: naan
+Garlic Naan | 3.99 | vegetarian
+Lemon Rice | 8.99 | vegetarian, vegan | aka: chitranna
+Curd Rice | 8.49 | vegetarian | aka: thayir sadam, yogurt rice
+Steamed Basmati Rice | 3.99 | vegetarian, vegan | aka: plain rice, white rice
+
+# Desserts
+Gulab Jamun (2 pcs) | 5.49 | vegetarian | aka: gulab jamoon
+Rava Kesari | 5.49 | vegetarian | aka: kesari, kesari bath
+Payasam | 5.99 | vegetarian | aka: kheer, semiya payasam
+
+# Drinks
+Filter Coffee | 3.49 | vegetarian | aka: madras coffee, south indian coffee | Sugar: Regular, Less sugar, No sugar
+Masala Chai | 3.29 | vegetarian | aka: chai, tea | Sugar: Regular, Less sugar, No sugar
+Mango Lassi | 4.99 | vegetarian | aka: lassi
+Sweet Lassi | 4.49 | vegetarian
+Rose Milk | 4.49 | vegetarian
+Soft Drink | 2.49 | vegan | aka: soda, coke | Flavor*: Coke, Diet Coke, Sprite, Ginger Ale

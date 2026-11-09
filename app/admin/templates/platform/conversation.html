@@ -1,0 +1,79 @@
+{% extends "platform/base.html" %}
+{% block title %}Call · {{ b.name }} · VanakkamIQ Platform{% endblock %}
+{% block content %}
+{% from "platform/_status.html" import status_chip %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/platform/restaurants/{{ b.id }}/calls" class="small">← Recent calls</a>
+    <h1>Call from {{ c.caller_phone or 'hidden number' }}</h1>
+    <p class="muted">{{ when.strftime('%A %b %d, %I:%M %p') if when else '' }} · {{ duration }} · {{ b.name }}</p>
+  </div>
+  {{ status_chip(c.status) }}
+</div>
+
+{% if c.summary %}<div class="alert alert-success" role="status"><span>{{ c.summary }}</span></div>{% endif %}
+
+<div class="grid-2" style="align-items:start">
+  <section class="card" aria-labelledby="t-h">
+    <h2 id="t-h">Transcript</h2>
+    {% if events %}
+    <ol class="transcript">
+      {% for item in events %}{% set e = item.e %}
+      {% if e.role == 'caller' %}
+      <li class="msg msg-caller"><span class="msg-who">Caller</span><span class="msg-bubble">{{ e.text }}</span></li>
+      {% elif e.role == 'agent' %}
+      <li class="msg msg-agent"><span class="msg-who">VanakkamIQ</span><span class="msg-bubble">{{ e.text }}</span></li>
+      {% elif e.role == 'tool' %}
+      <li class="msg-tool">
+        <details>
+          <summary>Action: <code>{{ e.tool_name }}</code>{% if e.data and e.data.result and e.data.result.ok is sameas false %} <span class="muted">(not done)</span>{% endif %}</summary>
+          <pre>{{ e.data | tojson(indent=2) }}</pre>
+        </details>
+      </li>
+      {% else %}
+      <li class="msg-tool muted small">{{ e.text }}</li>
+      {% endif %}
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="muted">Nothing was recorded for this call.</p>
+    {% endif %}
+  </section>
+
+  <div class="stack">
+    {% for o in orders %}
+    <section class="card" aria-label="Order">
+      <div class="card-head">
+        <h2>{% if o.number %}Order #{{ o.number }}{% else %}Unfinished order{% endif %}</h2>
+        <span class="chip {{ 'chip-success' if o.status not in ('draft', 'cancelled') else '' }}">{{ o.status|replace('_', ' ')|capitalize }}</span>
+      </div>
+      <p class="muted">{{ o.customer_name or 'No name' }} · {{ o.fulfillment|capitalize }}{% if o.requested_time %} · {{ o.requested_time }}{% endif %}{% if o.delivery_address %}<br>{{ o.delivery_address }}{% endif %}</p>
+      <div>
+        {% for li in o.items %}
+        <div class="menu-item">
+          <span>{{ li.quantity }} × {{ li.name }}
+            {% if li.modifiers %}<span class="muted small"> · {{ li.modifiers | map(attribute='name') | join(', ') }}</span>{% endif %}
+            {% if li.special_instructions %}<br><span class="muted small">“{{ li.special_instructions }}”</span>{% endif %}
+          </span>
+          <span>{{ format_money(li.line_total_cents, b.currency) }}</span>
+        </div>
+        {% endfor %}
+        <div class="menu-item muted"><span>Subtotal</span><span>{{ format_money(o.subtotal_cents, b.currency) }}</span></div>
+        <div class="menu-item muted"><span>Tax</span><span>{{ format_money(o.tax_cents, b.currency) }}</span></div>
+        <div class="menu-item"><strong>Total</strong><strong>{{ format_money(o.total_cents, b.currency) }}</strong></div>
+      </div>
+      {% if o.notes %}<p class="small">Notes: {{ o.notes }}</p>{% endif %}
+    </section>
+    {% endfor %}
+
+    {% for h in handoffs %}
+    <section class="card" aria-label="Handoff">
+      <h2>{{ 'Callback requested' if h.outcome == 'callback_requested' else 'Transfer to staff' }}</h2>
+      <p>{{ h.reason }}</p>
+      {% if h.callback_phone %}<p class="muted">Call back: {{ h.callback_name or '' }} {{ h.callback_phone }}</p>{% endif %}
+      <p class="muted small">Outcome: {{ h.outcome|replace('_', ' ') }}</p>
+    </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

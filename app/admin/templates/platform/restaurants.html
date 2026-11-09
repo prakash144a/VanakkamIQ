@@ -1,0 +1,51 @@
+{% extends "platform/base.html" %}
+{% block title %}Restaurants · VanakkamIQ Platform{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <p class="muted">{{ rows|length }} restaurant{{ '' if rows|length == 1 else 's' }}</p>
+    <h1>Restaurants</h1>
+  </div>
+  <a class="btn btn-primary" href="/platform/restaurants/new">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Add restaurant
+  </a>
+</div>
+
+<section class="card" aria-label="All restaurants">
+  {% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th scope="col">Restaurant</th><th scope="col">Phone number</th><th scope="col">Menu</th><th scope="col">Status</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>
+            <a href="/platform/restaurants/{{ row.business.id }}"><strong>{{ row.business.name }}</strong></a>
+            <div class="muted small">{{ row.business.address or 'No address' }}</div>
+          </td>
+          <td>{{ row.numbers|join(', ') or '—' }}</td>
+          <td>{{ row.items }} item{{ '' if row.items == 1 else 's' }}</td>
+          <td>
+            {% if row.business.is_active %}
+              <span class="chip chip-success"><span class="dot"></span>Answering calls</span>
+            {% else %}
+              <span class="chip">Paused</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="stack" style="align-items:flex-start">
+    <h2>No restaurants yet</h2>
+    <p class="muted">Add the first restaurant to give it a VanakkamIQ phone number, menu and owner login.</p>
+    <a class="btn btn-primary" href="/platform/restaurants/new">Add restaurant</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

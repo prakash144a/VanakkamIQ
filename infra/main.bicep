@@ -30,6 +30,8 @@ param openaiProjectId string = ''
 param openaiWebhookSecret string = ''
 @secure()
 param telnyxApiKey string = ''
+@description('Telnyx Voice API public key (webhook signatures; milestone 6b routing). Not secret, but kept with the other settings.')
+param telnyxPublicKey string = ''
 
 @secure()
 @description('Azure Communication Services email: endpoint=https://...;accesskey=... (sign-in codes).')
@@ -44,6 +46,11 @@ param adminHost string = ''
 @description('Managed certificate names in the environment for ownerHost and adminHost (created by `az containerapp hostname bind`; see docs/azure-deploy.md).')
 param ownerCertificate string = ''
 param adminCertificate string = ''
+@description('Public website domain, e.g. vanakkamiq.example.com, and its managed certificate name.')
+param siteHost string = ''
+param siteCertificate string = ''
+@description('Where website demo requests are emailed.')
+param demoRequestTo string = 'info@nativemindsai.com'
 
 var suffix = uniqueString(resourceGroup().id)
 var acrName = toLower('${appName}${suffix}')
@@ -65,6 +72,7 @@ var plainEnv = [
   { name: 'DATABASE_SCHEMA', value: databaseSchema }
   { name: 'OPENAI_PROJECT_ID', value: openaiProjectId }
   { name: 'ACS_SENDER', value: acsSender }
+  { name: 'TELNYX_PUBLIC_KEY', value: telnyxPublicKey }
 ]
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
@@ -137,6 +145,9 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
           ],
           empty(adminHost) || empty(adminCertificate) ? [] : [
             { name: adminHost, bindingType: 'SniEnabled', certificateId: '${env.id}/managedCertificates/${adminCertificate}' }
+          ],
+          empty(siteHost) || empty(siteCertificate) ? [] : [
+            { name: siteHost, bindingType: 'SniEnabled', certificateId: '${env.id}/managedCertificates/${siteCertificate}' }
           ]
         )
       }
@@ -159,6 +170,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
             { name: 'PUBLIC_BASE_URL', value: empty(ownerHost) ? 'https://${appName}.${env.properties.defaultDomain}' : 'https://${ownerHost}' }
             { name: 'OWNER_HOST', value: ownerHost }
             { name: 'ADMIN_HOST', value: adminHost }
+            { name: 'SITE_HOST', value: siteHost }
+            { name: 'DEMO_REQUEST_TO', value: demoRequestTo }
           ])
           probes: [
             {

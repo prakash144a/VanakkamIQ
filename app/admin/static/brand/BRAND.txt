@@ -1,33 +1,26 @@
-VanakkamIQ brand kit - "One Thread" kolam logo
-Tagline: Understands. Cares. Gets it done.
+VanakkamIQ logo: "Hello bubble" (finalized 2026-11-10)
+A speech bubble holding a voice wave: the AI that answers your phone.
 
-WHICH FILE TO USE
-  Website header, documents, slides ... svg/vanakkamiq-logo.svg (or png/ version)
-  Website hero, flyers, pitch deck ..... svg/vanakkamiq-logo-tagline.svg
-  Square spaces, posters, signage ...... svg/vanakkamiq-logo-stacked.svg
-  Dark backgrounds ..................... any file ending in -dark
-  Single-colour print, stamps, T-shirts  any file ending in -mono
-  On photos or busy backgrounds ........ any file ending in -mono-white
-  WhatsApp / Google Business / Instagram png/vanakkamiq-profile-picture-1080.png
-  Mobile app icon ...................... png/vanakkamiq-app-icon-1024.png (and 512, 192)
-  iPhone home-screen bookmark .......... png/apple-touch-icon-180.png
-  Browser tab .......................... png/favicon.ico or svg/vanakkamiq-favicon.svg
+FILES (app/admin/static/brand)
+  vanakkamiq-mark.svg ........ the bubble mark on its own (terracotta, cream bars)
+  vanakkamiq-favicon.svg ..... browser tab icon (slightly heavier bars for 16-32 px)
+  favicon.ico ................ 16 / 32 / 48 px, for older browsers
+  vanakkamiq-app-icon.svg .... cream bubble on a terracotta rounded square
+  apple-touch-icon-180.png ... iPhone home screen
+  vanakkamiq-icon-192.png, vanakkamiq-icon-512.png ... Android / web app icons
+  vanakkamiq-logo.png ........ full logo for documents and email (transparent, 1200 px wide)
+  vanakkamiq-logo-dark.png ... full logo on the dark background
 
-SVG files scale to any size without blur; use them wherever the tool accepts SVG.
-PNG files have transparent backgrounds except the icons and dark versions.
+In the app the logo is drawn as the mark plus live text (macro `logo` in templates/shared/_ui.html),
+so it stays sharp at every size. The wordmark is Manrope ExtraBold: "Vanakkam" in Ink, "IQ" in Terracotta.
 
-COLOURS
-  Kolam Green  #0F4C45   main colour: kolam line and "Vanakkam"
-  Turmeric     #F2A900   kolam dots, accents
-  Amber        #E39B00   "IQ" on light backgrounds
-  Rice Cream   #FFF4DC   kolam line on dark backgrounds
-  Deep Green   #0B3A35   dark panels
+COLOURS (Terracotta Sand)
+  Terracotta  #A9472A   mark, "IQ", app icon background
+  Cream       #FFFDFA   voice bars, mark on terracotta
+  Ink         #2A1F1A   "Vanakkam" on light backgrounds
+  Clay light  #E39A72   "IQ" on dark backgrounds
 
-TYPEFACE
-  Lexend (free, Google Fonts). SemiBold for the wordmark and headings, Medium for the tagline and body.
-  All logo text is already converted to shapes, so the font does not need to be installed to use the logo files.
-
-USING THE LOGO
-  Clear space: keep empty space around the logo at least as wide as the gap between two kolam dots.
-  Minimum size: horizontal logo 120 px wide. Below 48 px, use the favicon (simplified 3x2 kolam).
-  Don't recolour, stretch, rotate, outline or add shadows.
+USE
+  Keep clear space around the logo of at least half the bubble's height.
+  Below 24 px, use the mark alone (no wordmark).
+  Don't recolour, stretch, outline or add shadows.

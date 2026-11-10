@@ -13,13 +13,13 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import lazyload
 
 from app.admin.auth import StaffSession, check_csrf, current_owner, current_staff, find_staff, log_in_staff
-from app.admin.common import conversation_view, db_session, local, recent_calls, render
+from app.admin.common import as_utc, conversation_view, db_session, local, recent_calls, render
 from app.admin.login_flow import LoginScreen, check_code, screen, send_code
 from app.business_types import get_type
 from app.capabilities.ordering.orders import OPEN_STATUSES, StatusChangeError, change_status
 from app.db.models import (
     Business, CatalogCategory, CatalogItem, Conversation, ConversationEvent, Customer, Faq, Handoff, Modifier, ModifierGroup,
-    Order, PhoneNumber,
+    Order, PhoneNumber, StaffUser,
 )
 from app.onboarding.catalog_json import MAX_BYTES, catalog_to_json, parse_catalog_json, preview_changes
 from app.onboarding.menu_import import (
@@ -30,6 +30,17 @@ from app.onboarding.service import (
 )
 
 router = APIRouter(prefix="/app")
+
+
+def waiting_text(minutes: int) -> str:
+    if minutes < 1:
+        return "just now"
+    if minutes < 60:
+        return f"{minutes} min"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours} h {minutes % 60} min" if minutes % 60 else f"{hours} h"
+    return f"{hours // 24} day{'s' if hours >= 48 else ''}"
 
 
 def go(path: str) -> RedirectResponse:
@@ -199,8 +210,14 @@ async def callbacks_page(request: Request, staff: StaffSession = Depends(current
         handoffs = list(await db.scalars(query.order_by(Handoff.created_at.desc()).limit(100)))
         callers = dict((await db.execute(select(Conversation.id, Conversation.caller_phone).where(
             Conversation.id.in_([h.conversation_id for h in handoffs] or [0])))).all())
-    rows = [{"h": h, "when": local(h.created_at, staff.business), "phone": h.callback_phone or callers.get(h.conversation_id),
-             "done_when": local(h.resolved_at, staff.business)} for h in handoffs]
+    now = datetime.now(timezone.utc)
+    rows = []
+    for h in handoffs:
+        minutes = max(0, int((now - as_utc(h.created_at)).total_seconds() // 60))
+        rows.append({"h": h, "when": local(h.created_at, staff.business),
+                     "phone": h.callback_phone or callers.get(h.conversation_id),
+                     "done_when": local(h.resolved_at, staff.business), "waiting_minutes": minutes,
+                     "waiting": waiting_text(minutes)})
     return await page(request, staff, "dashboard/callbacks.html", "callbacks", rows=rows, done=done)
 
 
@@ -546,6 +563,84 @@ async def delete_faq(request: Request, faq_id: int, staff: StaffSession = Depend
             await db.delete(faq)
             await db.commit()
     return go("/app/faqs")
+
+
+# --- team (the owner manages who can sign in) ----------------------------------------------
+ROLES = {"owner": "Owner", "staff": "Staff"}
+
+
+async def _team_page(request: Request, staff: StaffSession, status_code: int = 200, **context):
+    async with db_session(request) as db:
+        members = list(await db.scalars(select(StaffUser).where(StaffUser.business_id == staff.business.id)
+                                        .order_by(StaffUser.role, StaffUser.email)))
+    rows = [{"u": u, "last": local(u.last_login_at, staff.business)} for u in members]
+    context.setdefault("error", None)
+    context.setdefault("added", None)
+    context.setdefault("v", {})
+    return await page(request, staff, "dashboard/team.html", "team", status_code=status_code, rows=rows,
+                      roles=ROLES, **context)
+
+
+@router.get("/team")
+async def team_page(request: Request, staff: StaffSession = Depends(current_owner)):
+    return await _team_page(request, staff)
+
+
+@router.post("/team", dependencies=[Depends(check_csrf)])
+async def team_add(request: Request, staff: StaffSession = Depends(current_owner)):
+    form = await request.form()
+    email = str(form.get("email") or "").strip().lower()
+    name = str(form.get("name") or "").strip()[:120] or None
+    role = str(form.get("role") or "staff")
+    error = None
+    if "@" not in email or "." not in email.split("@")[-1] or len(email) > 254:
+        error = "Enter a valid email address."
+    elif role not in ROLES:
+        error = "Choose a role from the list."
+    async with db_session(request) as db:
+        if error is None and await find_staff(db, email) is not None:
+            error = f"{email} already has a VanakkamIQ login."
+        if error is None:
+            db.add(StaffUser(business_id=staff.business.id, email=email, name=name, role=role))
+            await db.commit()
+    if error:
+        return await _team_page(request, staff, status_code=422, error=error,
+                                v={"email": email, "name": name or "", "role": role})
+    return await _team_page(request, staff, added=email)
+
+
+async def _owner_count(db, business_id: int) -> int:
+    return await db.scalar(select(func.count()).select_from(StaffUser).where(
+        StaffUser.business_id == business_id, StaffUser.role == "owner")) or 0
+
+
+@router.post("/team/{user_id}/role", dependencies=[Depends(check_csrf)])
+async def team_role(request: Request, user_id: int, staff: StaffSession = Depends(current_owner)):
+    form = await request.form()
+    role = str(form.get("role") or "")
+    async with db_session(request) as db:
+        user = await db.get(StaffUser, user_id)
+        if user is None or user.business_id != staff.business.id or role not in ROLES:
+            return go("/app/team")
+        if user.role == "owner" and role != "owner" and await _owner_count(db, staff.business.id) <= 1:
+            return await _team_page(request, staff, status_code=422,
+                                    error="The business needs at least one owner. Make someone else an owner first.")
+        user.role = role
+        await db.commit()
+    # Owners who make themselves staff lose access to this page.
+    return go("/app" if user_id == staff.user.id and role != "owner" else "/app/team")
+
+
+@router.post("/team/{user_id}/delete", dependencies=[Depends(check_csrf)])
+async def team_remove(request: Request, user_id: int, staff: StaffSession = Depends(current_owner)):
+    if user_id == staff.user.id:
+        return await _team_page(request, staff, status_code=422, error="You can't remove your own login.")
+    async with db_session(request) as db:
+        user = await db.get(StaffUser, user_id)
+        if user is not None and user.business_id == staff.business.id:
+            await db.delete(user)
+            await db.commit()
+    return go("/app/team")
 
 
 # --- settings ------------------------------------------------------------------------------

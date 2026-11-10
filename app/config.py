@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # Custom domains (optional): the business dashboard and the platform admin each get their
     # own address; the default Azure address still serves the OpenAI webhook and health check.
     owner_host: str = ""  # e.g. owner.vanakkamiq.nativemindsai.com
+    site_host: str = ""  # the public website, e.g. vanakkamiq.nativemindsai.com
     admin_host: str = ""  # e.g. admin.vanakkamiq.nativemindsai.com
     secret_key: str = "change-me"
 
@@ -25,12 +26,18 @@ class Settings(BaseSettings):
     openai_webhook_secret: str = ""
     openai_realtime_model: str = "gpt-realtime-2.1"
     openai_transcription_model: str = "gpt-4o-transcribe"
+    # AI-written call summaries (one small text-model call per finished call; off = rule-based summary)
+    ai_summaries: bool = True
+    openai_summary_model: str = "gpt-4.1-mini"
     openai_base_url: str = "https://api.openai.com/v1"
     openai_realtime_ws_url: str = "wss://api.openai.com/v1/realtime"
 
     # Telnyx
     telnyx_api_key: str = ""
     telnyx_base_url: str = "https://api.telnyx.com/v2"
+    # Voice API public key (Telnyx portal → Keys & Credentials → Public Key). Set it to route calls
+    # through the app so the dialed number reaches OpenAI (milestone 6b, app/telephony/telnyx_routing.py).
+    telnyx_public_key: str = ""
 
     # SIP headers searched, in order, for the number the caller dialed.
     sip_called_number_headers: list[str] = ["X-Called-Number", "Diversion", "P-Called-Party-ID", "To"]
@@ -49,6 +56,8 @@ class Settings(BaseSettings):
     # Email (Azure Communication Services): sign-in codes. Same setup as EverMindIQ.
     acs_connection_string: str = ""  # endpoint=https://x.communication.azure.com/;accesskey=...
     acs_sender: str = "DoNotReply@nativemindsai.com"
+    # Website "Book a demo" requests are emailed here (reply goes straight to the visitor).
+    demo_request_to: str = "info@nativemindsai.com"
 
     # Sign-in codes (passwordless login for platform admins and business staff)
     otp_ttl_seconds: int = 600

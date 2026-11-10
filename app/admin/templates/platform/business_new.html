@@ -15,6 +15,8 @@
 
 <form method="post" action="/platform/businesses" class="stack" novalidate data-business-form>
   <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if v.get('demo_request') %}<input type="hidden" name="demo_request" value="{{ v.get('demo_request') }}">
+  <div class="alert alert-success" role="status">Onboarding website demo request #{{ v.get('demo_request') }}: name, owner and type are filled in from it.</div>{% endif %}
 
   <section class="card">
     <fieldset>

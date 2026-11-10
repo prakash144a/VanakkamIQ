@@ -30,12 +30,16 @@ async def end_call(ctx: ToolContext, args: dict) -> dict:
     return {"ok": True, "instruction": "Say a short, warm goodbye now. The call will end right after."}
 
 
-def core_tools() -> list[Tool]:
-    return [
+def core_tools(*, transfers: bool = True) -> list[Tool]:
+    """transfers=False leaves out transfer_to_human: the AI can only promise a call back."""
+    tools = [
         Tool("answer_faq", "Look up the business's saved answer to a caller's question.",
              schema({"question": {"type": "string"}}, ["question"]), answer_faq),
-        Tool("transfer_to_human", "Connect the caller with a team member (see the rules for when).",
-             schema({"reason": {"type": "string"}}, ["reason"]), transfer_to_human),
+    ]
+    if transfers:
+        tools.append(Tool("transfer_to_human", "Connect the caller with a team member (see the rules for when).",
+                          schema({"reason": {"type": "string"}}, ["reason"]), transfer_to_human))
+    return tools + [
         Tool("request_callback", "Leave a message for the team so someone calls the caller back.",
              schema({
                  "name": {"type": "string"},

@@ -37,7 +37,8 @@ async def test_new_caller_places_pickup_order(services):
 
     body = json.loads(accept.calls.last.request.content)
     assert body["type"] == "realtime"
-    assert {t["name"] for t in body["tools"]} >= {"search_catalog", "add_to_order", "confirm_order", "transfer_to_human"}
+    assert {t["name"] for t in body["tools"]} >= {"search_catalog", "add_to_order", "confirm_order", "request_callback"}
+    assert "transfer_to_human" not in {t["name"] for t in body["tools"]}  # demo business has no staff number
     assert "Chicken Biryani" in body["instructions"]
     assert conn.responses[0].startswith("Greet the caller") and "Vanakkam!" in conn.responses[0]
 
@@ -122,10 +123,11 @@ async def test_transfer_to_staff(services):
 
 @respx.mock
 async def test_no_staff_number_offers_callback(services):
-    respx.post(url__regex=ACCEPT).mock(return_value=httpx.Response(200))
+    accept = respx.post(url__regex=ACCEPT).mock(return_value=httpx.Response(200))
     _, task, conn = await start_call(services, "rtc_1", "+15551230000")
-    result = await conn.call_tool("transfer_to_human", reason="Allergy question")
-    assert result["ok"] is False and "request_callback" in result["instruction"]
+    body = json.loads(accept.calls.last.request.content)
+    assert "transfer_to_human" not in {t["name"] for t in body["tools"]}  # nobody to transfer to
+    assert "call them back in a few minutes" in body["instructions"]
     callback = await conn.call_tool("request_callback", name="Meena", message="Is the dosa batter nut-free?")
     assert callback["ok"] is True
     await end_call(conn, task)

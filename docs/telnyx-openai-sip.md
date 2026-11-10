@@ -52,3 +52,19 @@ az containerapp logs show -g vanakkamiq-rg -n vanakkamiq --tail 100 --format tex
 | `Ignoring OpenAI webhook event 'live....'` | The webhook is subscribed to a different event type; subscribe to `realtime.call.incoming` |
 | `no active business matches the dialed number; rejecting` | Dialed number not in the expected headers; see the SIP headers on the line above |
 | call connects, no audio | TLS / SRTP / codec negotiation: check Telnyx SIP call diagnostics |
+
+## Several businesses: route calls through the app (milestone 6b)
+
+With the setup above, Telnyx swaps the dialed number for the OpenAI project ID, so the app can't tell which business a call is for. That's fine with one business: the app uses the only active one. Before adding a second business, switch the numbers to this mode:
+
+1. **Telnyx → Voice → Programmable Voice (Voice API applications) → Add new app**
+   - Name: `VanakkamIQ router`
+   - Webhook URL: `https://<default app address>/voice/telnyx/webhook` (the `*.azurecontainerapps.io` address)
+   - Outbound: select the Outbound Voice Profile you attached for transfers (it needs US/Canada, and must allow calls to SIP addresses).
+2. **Telnyx → Keys & Credentials → Public Key**: copy it into `infra/secrets.local.json` as `telnyxPublicKey` (the app checks every webhook's signature with it), then deploy.
+3. **Numbers → My Numbers →** each number: set its connection/application to **VanakkamIQ router** and clear the Translated Number.
+4. Call each number. In the platform admin, the business page's **How the last calls found this business** should say *Dialed number in the `X-Called-Number` header*.
+
+What happens on a call: Telnyx tells the app a call arrived → the app hands the call to `sip:<project>@sip.api.openai.com` with the headers `X-Called-Number` (the dialed number) and `X-VIQ-Leg` (the caller's Telnyx call id) → OpenAI calls the app's webhook as usual, and the app picks the business by `X-Called-Number`. Transfers to staff on these calls go through the Telnyx Voice API (`transfer`), falling back to OpenAI's REFER if that fails.
+
+Not yet tested on a real call: test one number first, then move the rest.

@@ -68,6 +68,15 @@
       <li>For text messages, attach the number to a Telnyx messaging profile and finish 10DLC registration.</li>
     </ol>
     <p class="muted small">Details: <code>docs/telnyx-openai-sip.md</code></p>
+    {% if routing %}
+    <div>
+      <strong class="small">How the last {{ routing.values()|sum }} calls found this business</strong>
+      {% for how, count in routing.items() %}
+      <div class="menu-item small"><span>{% if how == 'only active business' %}No dialed number in the call (only active business){% elif how %}Dialed number in the <code>{{ how }}</code> header{% else %}Not recorded (before 2026-11-10){% endif %}</span><span>{{ count }}</span></div>
+      {% endfor %}
+      {% if 'only active business' in routing %}<p class="muted small">Calls matched without a dialed number only work while one business is active. Set up dialed-number routing before adding a second business (milestone 6b).</p>{% endif %}
+    </div>
+    {% endif %}
   </section>
 </div>
 
@@ -82,6 +91,7 @@
           <tr><th scope="row">Sales tax</th><td>{{ '%.3f'|format(b.tax_rate_bps / 100)|replace('.000', '') }}%</td></tr>
           <tr><th scope="row">Large order</th><td>{{ format_money(b.large_order_cents, b.currency) if b.large_order_cents else 'No limit' }}</td></tr>
           {% endif %}
+          <tr><th scope="row">Transfers</th><td>{% if b.transfers_enabled and b.handoff_phone %}On: {{ b.handoff_phone }}{% elif b.transfers_enabled %}On, but no staff number set (callers get a call back){% else %}Off: callers get a call back{% endif %}</td></tr>
           <tr><th scope="row">Voice</th><td>{{ b.voice|capitalize }} · {{ b.language }}</td></tr>
           <tr><th scope="row">Transcripts</th><td>{{ 'Kept ' ~ b.transcript_retention_days ~ ' days' if b.transcript_retention_days else 'Kept' }}</td></tr>
           <tr><th scope="row">Hours</th><td>

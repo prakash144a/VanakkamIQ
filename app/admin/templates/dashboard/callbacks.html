@@ -1,37 +1,42 @@
 {% extends "dashboard/base.html" %}
-{% block title %}Messages · {{ b.name }}{% endblock %}
+{% block title %}Return calls · {{ b.name }}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div class="stack" style="gap:4px">
-    <h1>Messages</h1>
-    <p class="muted">Callers who asked for a call back, or whose transfer didn't go through.</p>
+    <h1>Return calls</h1>
+    <p class="muted">Callers waiting for someone to call them back{{ ', because transfers are off' if not b.transfers_enabled else '' }}. Call them, then mark it done.</p>
   </div>
   <nav class="segmented" aria-label="Show">
     <a href="/app/callbacks" {% if not done %}aria-current="page"{% endif %}>To call back</a>
-    <a href="/app/callbacks?show=done" {% if done %}aria-current="page"{% endif %}>Handled</a>
+    <a href="/app/callbacks?show=done" {% if done %}aria-current="page"{% endif %}>Called back</a>
   </nav>
 </div>
 
 {% if rows %}
 <div class="stack">
   {% for row in rows %}{% set h = row.h %}
-  <article class="card message" aria-label="Message from {{ h.callback_name or row.phone or 'a caller' }}">
+  <article class="card message {{ 'message-late' if not done and row.waiting_minutes >= 15 }}" aria-label="Return call for {{ h.callback_name or row.phone or 'a caller' }}">
     <div class="card-head">
       <h2>{{ h.callback_name or 'Caller' }}{% if row.phone %} · <a href="tel:{{ row.phone }}">{{ row.phone }}</a>{% endif %}</h2>
-      <span class="muted small">{{ row.when.strftime('%a %b %d, %I:%M %p') if row.when else '' }}</span>
+      {% if done %}
+      <span class="muted small">Asked {{ row.when.strftime('%a %b %d, %I:%M %p') if row.when else '' }}</span>
+      {% else %}
+      <span class="chip {{ 'chip-accent' if row.waiting_minutes >= 15 }}">Waiting {{ row.waiting }}</span>
+      {% endif %}
     </div>
     <p class="message-text">{{ h.message or h.reason }}</p>
     {% if h.outcome == 'failed' %}<p class="muted small">The AI tried to transfer this caller, but the transfer didn't connect.</p>{% endif %}
     <div class="row" style="justify-content:space-between">
       <a class="small" href="/app/calls/{{ h.conversation_id }}">See the call</a>
-      <form method="post" action="/app/callbacks/{{ h.id }}/done">
+      <form method="post" action="/app/callbacks/{{ h.id }}/done" class="row">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         {% if done %}
-        <span class="muted small">Handled by {{ h.resolved_by or 'staff' }}{{ ', ' ~ row.done_when.strftime('%b %d') if row.done_when else '' }}</span>
+        <span class="muted small">Called back by {{ h.resolved_by or 'staff' }}{{ ', ' ~ row.done_when.strftime('%b %d, %I:%M %p') if row.done_when else '' }}</span>
         <input type="hidden" name="undo" value="1">
         <button class="btn" type="submit">Move back</button>
         {% else %}
-        <button class="btn btn-primary" type="submit">Mark handled</button>
+        {% if row.phone %}<a class="btn" href="tel:{{ row.phone }}">Call</a>{% endif %}
+        <button class="btn btn-primary" type="submit">Mark called back</button>
         {% endif %}
       </form>
     </div>
@@ -39,6 +44,6 @@
   {% endfor %}
 </div>
 {% else %}
-<section class="card"><p class="muted">{{ 'Nothing handled yet.' if done else "You're all caught up. New messages show up here and are texted to your alert number." }}</p></section>
+<section class="card"><p class="muted">{{ 'Nobody has been called back yet.' if done else "You're all caught up: nobody is waiting for a call back." }}</p></section>
 {% endif %}
 {% endblock %}

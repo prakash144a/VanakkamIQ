@@ -21,6 +21,7 @@ def make_settings(tmp_path) -> Settings:
         openai_webhook_secret=WEBHOOK_SECRET,
         telnyx_api_key="",
         hangup_delay_seconds=0,
+        ai_summaries=False,  # tests that want one mock the OpenAI call (tests/test_summary.py)
         transfer_delay_seconds=0,
     )
 

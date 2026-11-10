@@ -44,7 +44,14 @@ class CallSession:
         caller_phone: str | None,
         customer_id: int | None,
         greeting_instruction: str,
+        summarizer=None,
+        telnyx=None,
+        telnyx_leg: str | None = None,
     ) -> None:
+        self.summarizer = summarizer
+        # Calls routed through the app (6b) are transferred with the Telnyx Voice API; others via OpenAI.
+        self.telnyx = telnyx
+        self.telnyx_leg = telnyx_leg
         self.connection = connection
         self.registry = registry
         self.session_factory = session_factory
@@ -147,7 +154,7 @@ class CallSession:
             return
         await self._wait_until_heard(self.settings.transfer_delay_seconds)
         try:
-            await self.connection.transfer(target or "")
+            await self._transfer(target or "")
             await self._record("system", f"Call transferred to {target}.")
         except Exception:
             log.exception("Transfer failed for conversation %s", self.conversation_id)
@@ -165,6 +172,15 @@ class CallSession:
                 "with the caller's name and callback number using request_callback."
             )
             await self.connection.request_response()
+
+    async def _transfer(self, target: str) -> None:
+        if self.telnyx is not None and self.telnyx_leg and target.startswith("tel:"):
+            try:
+                await self.telnyx.transfer_call(self.telnyx_leg, target.removeprefix("tel:"))
+                return
+            except Exception:  # noqa: BLE001 - fall back to OpenAI's REFER
+                log.warning("Telnyx transfer failed for conversation %s; trying OpenAI", self.conversation_id)
+        await self.connection.transfer(target)
 
     # --- persistence -------------------------------------------------------------------
     async def _record(self, role: str, text: str | None, tool_name: str | None = None, data: dict | None = None) -> None:
@@ -210,11 +226,20 @@ class CallSession:
                 convo.customer_id = customer.id
             await db.commit()
             status, summary = convo.status, convo.summary
+            events = list(convo.events)
             order_note = ""
             if draft is not None and draft.status not in ("draft", "cancelled"):
                 order_note = f", order #{draft.number} ({len(draft.items)} line(s), {format_money(draft.total_cents)})"
             # No names, numbers or transcript text in logs: just the outcome.
             log.info("Conversation %s ended: %s%s, %d events", self.conversation_id, status, order_note, len(convo.events))
+        if self.summarizer is not None:
+            # The call is over, so this adds no delay for the caller; on any failure the basic summary stays.
+            better = await self.summarizer.summarize(events, [f"Outcome: {status}", f"Basic summary: {summary}"])
+            if better:
+                async with self.session_factory() as db:
+                    convo = await db.get(Conversation, self.conversation_id)
+                    convo.summary = summary = better
+                    await db.commit()
         self.bus.publish(self.business_id, {
             "type": "call.ended", "conversation_id": self.conversation_id, "status": status, "summary": summary,
         })

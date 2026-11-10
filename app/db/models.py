@@ -41,6 +41,8 @@ class Business(Base):
     model: Mapped[str | None] = mapped_column(String(80))  # per-business model override
     voice_path: Mapped[str] = mapped_column(String(20), default="openai_sip")  # later: media_stream
     handoff_phone: Mapped[str | None] = mapped_column(String(20))  # staff number for live transfer
+    # Off (or no handoff_phone): the AI never transfers; it promises a call back and logs a return call.
+    transfers_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     notify_phone: Mapped[str | None] = mapped_column(String(20))  # staff number for SMS alerts
     sms_from: Mapped[str | None] = mapped_column(String(20))  # Telnyx number SMS is sent from
     # Ordering module: catalog, cart, order confirmation, orders board
@@ -62,6 +64,24 @@ class PlatformAdmin(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     name: Mapped[str | None] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DemoRequest(Base):
+    """"Book a demo" from the website. Platform admins follow up and onboard the business by hand."""
+
+    __tablename__ = "demo_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    business_name: Mapped[str] = mapped_column(String(200))
+    business_type: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(320))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)  # new | contacted | onboarded | closed
+    email_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -194,6 +214,10 @@ class Conversation(Base):
     provider: Mapped[str] = mapped_column(String(40), default="openai_realtime")
     provider_call_id: Mapped[str | None] = mapped_column(String(120), index=True)
     caller_phone: Mapped[str | None] = mapped_column(String(20))
+    # How the call was matched to this business: the SIP header that held the dialed number,
+    # or "only active business" when no header carried it (see CallManager.route_call).
+    dialed_number: Mapped[str | None] = mapped_column(String(20))
+    routed_by: Mapped[str | None] = mapped_column(String(40))
     # active | completed | escalated | abandoned | failed
     status: Mapped[str] = mapped_column(String(20), default="active", index=True)
     summary: Mapped[str | None] = mapped_column(Text)

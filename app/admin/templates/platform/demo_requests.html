@@ -1,0 +1,46 @@
+{% extends "platform/base.html" %}
+{% set section = 'demo' %}
+{% block title %}Demo requests · VanakkamIQ Platform{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Demo requests</h1>
+    <p class="muted">From the website's "Book a demo" form. Each one is also emailed to info@nativemindsai.com.</p>
+  </div>
+  <nav class="segmented" aria-label="Show">
+    <a href="/platform/demo-requests" {% if show != 'all' %}aria-current="page"{% endif %}>To follow up</a>
+    <a href="/platform/demo-requests?show=all" {% if show == 'all' %}aria-current="page"{% endif %}>All</a>
+  </nav>
+</div>
+
+{% for lead in leads %}
+<article class="card" id="lead-{{ lead.id }}" aria-label="Demo request from {{ lead.business_name }}">
+  <div class="card-head">
+    <h2>{{ lead.business_name }} <span class="muted small">· {{ types[lead.business_type].label if lead.business_type in types else 'Other' }}</span></h2>
+    <span class="chip {{ 'chip-accent' if lead.status == 'new' else ('chip-success' if lead.status == 'onboarded' else '') }}">{{ statuses[lead.status] }}</span>
+  </div>
+  <p><strong>{{ lead.name }}</strong>
+    {% if lead.email %} · <a href="mailto:{{ lead.email }}">{{ lead.email }}</a>{% endif %}
+    {% if lead.phone %} · <a href="tel:{{ lead.phone }}">{{ lead.phone }}</a>{% endif %}
+    <span class="muted small"> · {{ lead.created_at.strftime('%b %d, %Y %H:%M') }} UTC{{ '' if lead.email_sent else ' · email not sent' }}</span></p>
+  {% if lead.message %}<p class="message-text">{{ lead.message }}</p>{% endif %}
+  <form method="post" action="/platform/demo-requests/{{ lead.id }}" class="row" style="align-items:flex-end">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="field" style="flex:1 1 320px">
+      <label for="notes-{{ lead.id }}">Notes</label>
+      <input id="notes-{{ lead.id }}" name="notes" type="text" value="{{ lead.notes or '' }}" placeholder="Called Tuesday; demo booked Friday 3 PM">
+    </div>
+    <div class="field">
+      <label for="status-{{ lead.id }}">Status</label>
+      <select id="status-{{ lead.id }}" name="status">
+        {% for key, label in statuses.items() %}<option value="{{ key }}" {% if lead.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn" type="submit">Save</button>
+    {% if lead.status != 'onboarded' %}<a class="btn btn-primary" href="/platform/businesses/new?demo={{ lead.id }}">Onboard</a>{% endif %}
+  </form>
+</article>
+{% else %}
+<section class="card"><p class="muted">{{ 'No demo requests yet.' if show == 'all' else 'Nothing to follow up. New requests from the website appear here.' }}</p></section>
+{% endfor %}
+{% endblock %}

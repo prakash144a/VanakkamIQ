@@ -95,7 +95,9 @@ done
 az containerapp hostname list -g vanakkamiq-rg -n vanakkamiq -o table   # note the certificate names
 ```
 
-Then put `ownerHost`, `adminHost`, `ownerCertificate` and `adminCertificate` in `infra/secrets.local.json`. The Bicep template declares the domains from these, so a redeploy keeps them (without them, a redeploy would detach the domains), and sets `OWNER_HOST`, `ADMIN_HOST` and `PUBLIC_BASE_URL` (order links in texts use the owner domain).
+The public website goes at `https://vanakkamiq.nativemindsai.com` the same way: run the loop above for `vanakkamiq` (record names `vanakkamiq` and `asuid.vanakkamiq`), then set `siteHost` / `siteCertificate`.
+
+Then put `ownerHost`, `adminHost`, `ownerCertificate` and `adminCertificate` (and `siteHost`, `siteCertificate`) in `infra/secrets.local.json`. The Bicep template declares the domains from these, so a redeploy keeps them (without them, a redeploy would detach the domains), and sets `OWNER_HOST`, `ADMIN_HOST` and `PUBLIC_BASE_URL` (order links in texts use the owner domain).
 
 ## 7. Deploying a new version
 

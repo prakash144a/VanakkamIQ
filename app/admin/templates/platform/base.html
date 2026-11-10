@@ -6,6 +6,7 @@
   {{ brand('/platform', 'Platform admin') }}
   <nav class="topnav" aria-label="Platform">
     <a href="/platform" {% if section == 'businesses' or section is not defined %}aria-current="page"{% endif %}>Businesses</a>
+    <a href="/platform/demo-requests" {% if section == 'demo' %}aria-current="page"{% endif %}>Demo requests</a>
     <a href="/platform/usage" {% if section == 'usage' %}aria-current="page"{% endif %}>Usage</a>
     <a href="/platform/admins" {% if section == 'admins' %}aria-current="page"{% endif %}>Admins</a>
   </nav>

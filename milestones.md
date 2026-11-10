@@ -136,7 +136,7 @@ The colors and sizes are defined once as CSS custom properties in `app/admin/sta
 7. When the call ends (`end_call` → `/hangup`, or the caller hangs up and the WebSocket closes), mark the conversation finished, generate a summary (one text-LLM call over the transcript), and update the customer record.
 
 ## Build milestones
-Status as of 2026-11-09: milestones 1–5 are written. Tests run inside the Azure image build (PyPI is blocked on the dev network). Real calls work end to end on Azure (first confirmed phone order 2026-11-09). The business-dashboard release (milestone 5, v7) is built but not yet deployed.
+Status as of 2026-11-10 (end of session 1): **v12 is live on Azure** (revision `vanakkamiq--0000009`, migrations 0001–0004 applied). 128 tests pass inside the Azure image build (PyPI is blocked on the dev network, so tests only run there). Real calls, orders, emailed sign-in and the three public addresses are verified live. Code since commit `b06429a` is deployed but **not yet committed to git**.
 
 0. ✅ **Plan saved** as `milestones.md` (this file).
 1. 🟡 **Scaffold** (written): pip/venv project (`pyproject.toml`), config, SQLAlchemy models, Alembic, seed script with a demo restaurant, menu and FAQs. SQLite locally and in tests, PostgreSQL on Azure. No docker-compose needed.
@@ -147,10 +147,52 @@ Status as of 2026-11-09: milestones 1–5 are written. Tests run inside the Azur
 5. 🟡 **Business dashboard** (written, v7): `/app` owner and staff login (passwordless: emailed one-time code; staff role can't change settings), live orders board (polls every 5 s, works across replicas, sound alerts; New → Preparing → Ready → Picked up, "Ready" and "Cancelled" text the customer), calls with live transcript, messages-to-call-back inbox, customers with notes the AI reads, catalog editor (item form, one-tap unavailable, edit-as-text), saved answers editor, settings (hours, holiday closures, numbers, voice, greeting, transcript retention). Platform admin: edit business (any IANA timezone), change type and modules, manage operator logins, usage page with estimated AI cost. Caller: order status page `/o/<token>` linked from the confirmation text. Migration 0001 frozen to explicit tables; 0002 adds the new columns and the sign-in code table, and drops password columns.
 5c. 🟡 **Passwordless sign-in** (written): every login (platform and business) is an emailed 6-digit code via Azure Communication Services, same settings as EverMindIQ (10-minute codes, 5 attempts, 60 s resend cooldown, hashed at rest, single use). Sessions last 30 days from the last visit (`SESSION_DAYS`).
 5d. 🟡 **Catalog as a JSON file** (written): owners upload a `.json` file (format agreed 2026-11-09: sections → items with optional `id`, `name`, `price`, `description`, `aliases`, `tags`, `available`, `options` with `min`/`max`/`choices`). The whole file is checked first and every problem reported with its location; a preview shows new / changed / removed items; confirming replaces the whole catalog. The current catalog downloads in the same format. Sample: `docs/sample-menu.json`.
-5b. ⬜ **Self-service sign-up** (later): sign-up wizard, AI menu import from a photo or PDF, automatic Telnyx number purchase, billing.
+5b. ✅ **Website + demo sign-up** (live in v12; decided 2026-11-10): a public landing page with a "Book a demo / get onboarded" form; requests land in the platform admin for follow-up. Onboarding stays manual by a platform admin for the MVP. Theme and menu to be previewed and approved before the full site is built.
 6. ✅ **Azure deployment**: Container App `vanakkamiq` in resource group `vanakkamiq-rg` (West US), running on the existing PostgreSQL database (schema `vanakkamiq`). The image is built in Azure with the tests inside the build (`Dockerfile` test stage). Deploys are manual (`az acr build` + `az containerapp update`). GitHub Actions (`.github/workflows/deploy.yml`) only tests pushes; its deploy job runs only when started by hand (OIDC setup in `scripts/setup-github-deploy.sh`, not yet run). Guide: `docs/azure-deploy.md`.
-7. ⬜ **Later**: media-stream bridge (Telnyx WebSocket ↔ server) with Gemini Live and backup-model support, ChatChannel (WhatsApp / web chat), Receptionist vertical (appointments), payments, POS integrations, LLM-written call summaries.
-6b. ⬜ **Routing calls for several businesses** (needed before the second business): Telnyx's Translated Number replaces the dialed number with the OpenAI project ID, and the SIP headers then carry only the caller's number (seen on the first real call, 2026-11-09). Today `single_business_fallback` answers for the only active business that has a number, and never guesses when there are two or more. Options: ask Telnyx to add the dialed number as a custom header (e.g. `X-Called-Number`, which the app already checks); route through TeXML `<Dial><Sip>` with a header; or use one OpenAI project per business.
+7. ⏸ **On hold** (decided 2026-11-10): 7c media-stream bridge with Gemini Live / backup model; 7d WhatsApp and web chat; 7e payments and POS integrations.
+6b. 🟡 **Routing calls for several businesses** (live in v12, not yet switched on): see Next up. Today a single active business is answered without a dialed number (`single_business_fallback`).
+
+## Live addresses (v12)
+| Address | What |
+|---|---|
+| https://vanakkamiq.nativemindsai.com | Public website (Gold theme), example calls, "Book a demo" |
+| https://owner.vanakkamiq.nativemindsai.com | Business dashboard (`/app`) and callers' order pages (`/o/...`) |
+| https://admin.vanakkamiq.nativemindsai.com | Platform admin (`/platform`) |
+| `https://<default Azure address>` (`az containerapp show ... --query properties.configuration.ingress.fqdn`) | Default Azure address: OpenAI webhook (`/voice/openai/webhook`), Telnyx routing webhook (`/voice/telnyx/webhook`), `/healthz` |
+
+All on managed certificates; DNS in the `nativemindsai.com` zone (`rg-nativemindsai-web`); Bicep declares the domains so redeploys keep them.
+
+## Verified live
+- 2026-11-09: emailed sign-in codes arrive; sign-in works on the admin and owner addresses.
+- 2026-11-09: a real call stays connected until the caller hears the goodbye; a phone order shows up on the owner's orders board.
+- 2026-11-10: v12 deployed; website, sign-in redirects, example-call audio and health check respond on every address.
+
+## Next up (start of session 2)
+1. **Test what v12 shipped** (needs a person on the phone / in a browser):
+   - Website: play both example calls; submit "Book a demo" once and check the email at info@nativemindsai.com (Reply goes to the visitor) and **Platform admin → Demo requests**.
+   - Transfers: Outbound Voice Profile attached in Telnyx 2026-11-10. Set a **Staff transfer number** (owner Settings), call in open hours, say "can I talk to a person". Also try the **Transfer callers to staff** switch off: the AI should promise a call back and it should appear under **Return calls**.
+   - AI call summaries (7a): after a call, the call list should show a one- or two-sentence summary.
+   - Team page: add a staff login and sign in with it.
+2. **Commit and push** everything since `b06429a` (not in git yet).
+3. **6b: switch on routing for several businesses** before adding a second business: create the Telnyx Voice API app pointing at `/voice/telnyx/webhook`, put the Telnyx public key in `infra/secrets.local.json` as `telnyxPublicKey`, move one number, test, then the rest (`docs/telnyx-openai-sip.md`). The platform admin's business page shows how each call was routed.
+4. Website follow-ups (optional): more example calls (a shop, after hours); privacy and terms pages; convert the call audio to a compressed format.
+
+## Done this session (2026-11-09 → 2026-11-10)
+- Any business type: core module (answers, messages, transfer) + switchable ordering module; business type sets wording only.
+- Owner dashboard: orders board, calls with live transcript, customers, catalog editor (form, text, JSON upload/download), saved answers, settings, **Team**, **Return calls**, transfer on/off switch.
+- Platform admin: edit business (any timezone), operator logins, usage page, **Demo requests** inbox with Onboard.
+- Passwordless sign-in for everyone (emailed codes via ACS, EverMindIQ settings, 30-day sessions).
+- Caller order-status page `/o/<token>`; ready/cancelled/message-received texts (switch on with SMS).
+- 6b routing through the app (Telnyx Voice API) and per-call routing record; 7a AI summaries.
+- Logo **Hello bubble** (`app/admin/static/brand/BRAND.txt`); website in the Gold theme with example calls in the AI's real voice (Marin).
+- Custom domains: website, owner, admin.
+
+## Deferred / on hold (decided 2026-11-09 / 2026-11-10)
+- ⏸ **Receptionist module (appointments, 7b)**: not needed for now.
+- ⏸ **Automatic phone number purchase and billing**: later; numbers are bought in Telnyx and businesses onboarded by a platform admin (from Demo requests).
+- ⏸ **7c media-stream bridge** (Gemini Live / backup model), **7d WhatsApp and web chat**, **7e payments and POS**: on hold.
+- ⏸ **Text messages (SMS)**: on hold because of the cost (Telnyx messaging profile + 10DLC registration, per-message fees). The code is done and switches on once the number has a messaging profile; until then confirmations, "ready" and "message received" texts are skipped and logged.
+- ⏸ **Database firewall** (lowest priority): keep the existing PostgreSQL firewall rules for now, including the allow-everything rule. Later: add the app's outbound IPs as a rule and remove `AllowAll_*`.
 
 ## Verification
 - **Unit tests (pytest)**: menu and order services (pricing, modifiers, unavailable items), tool handlers, session config builder, and webhook signature verification.

@@ -8,7 +8,9 @@ from app.admin.auth import check_csrf, current_platform_admin, find_platform_adm
 from app.admin.common import conversation_view, db_session, recent_calls, render
 from app.admin.login_flow import LoginScreen, check_code, screen, send_code
 from app.business_types import DEFAULT_TYPE, TYPES, get_type
-from app.db.models import Business, CatalogCategory, CatalogItem, Conversation, Faq, PhoneNumber, PlatformAdmin, StaffUser
+from app.db.models import (
+    Business, CatalogCategory, CatalogItem, Conversation, DemoRequest, Faq, PhoneNumber, PlatformAdmin, StaffUser,
+)
 from app.onboarding.service import (
     OnboardingError, business_form_values, create_business, form_options, new_form_defaults, parse_business_fields,
     parse_form, parse_phone, setup_checklist, today_for, update_business,
@@ -75,8 +77,17 @@ def _new_form(request: Request, admin: PlatformAdmin, v: dict, errors: list[str]
 
 
 @router.get("/businesses/new")
-async def new_business(request: Request, admin: PlatformAdmin = Depends(current_platform_admin), type: str = DEFAULT_TYPE):
-    return _new_form(request, admin, new_form_defaults(type if type in TYPES else DEFAULT_TYPE), [])
+async def new_business(request: Request, admin: PlatformAdmin = Depends(current_platform_admin), type: str = DEFAULT_TYPE,
+                       demo: int = 0):
+    values = new_form_defaults(type if type in TYPES else DEFAULT_TYPE)
+    if demo:  # onboarding a website demo request: start from what they told us
+        async with db_session(request) as db:
+            lead = await db.get(DemoRequest, demo)
+        if lead is not None:
+            values = new_form_defaults(lead.business_type if lead.business_type in TYPES else DEFAULT_TYPE)
+            values.update({"name": lead.business_name, "owner_name": lead.name, "owner_email": lead.email or "",
+                           "demo_request": str(lead.id)})
+    return _new_form(request, admin, values, [])
 
 
 @router.post("/businesses", dependencies=[Depends(check_csrf)])
@@ -93,6 +104,13 @@ async def create(request: Request, admin: PlatformAdmin = Depends(current_platfo
                 errors = exc.errors
     if created is None:
         return _new_form(request, admin, values, errors, status_code=422)
+    if values.get("demo_request", "").isdigit():
+        async with db_session(request) as db:
+            lead = await db.get(DemoRequest, int(values["demo_request"]))
+            if lead is not None:
+                lead.status = "onboarded"
+                lead.notes = ((lead.notes or "") + f"\nOnboarded as {created.business.name}.").strip()
+                await db.commit()
     return await _detail(request, admin, created.business.id, created=created)
 
 
@@ -114,11 +132,14 @@ async def _detail(request: Request, admin: PlatformAdmin, business_id: int, crea
         items = list(await db.scalars(
             select(CatalogItem).where(CatalogItem.business_id == business.id).order_by(CatalogItem.sort_order)))
         faqs = list(await db.scalars(select(Faq).where(Faq.business_id == business.id)))
+        recent = (select(Conversation.routed_by).where(Conversation.business_id == business.id)
+                  .order_by(Conversation.started_at.desc()).limit(30).subquery())
+        routing = dict((await db.execute(select(recent.c.routed_by, func.count()).group_by(recent.c.routed_by))).all())
     catalog = [(c, [i for i in items if i.category_id == c.id]) for c in categories]
     ready = all(c.done for c in checklist if c.required)
     return render(request, "platform/business_detail.html", admin=admin, b=business, btype=get_type(business.business_type),
                   checklist=checklist, ready=ready, numbers=numbers, owners=owners, catalog=catalog, faqs=faqs,
-                  created=created, openai_project_id=request.app.state.services.settings.openai_project_id)
+                  created=created, routing=routing, openai_project_id=request.app.state.services.settings.openai_project_id)
 
 
 @router.get("/businesses/{business_id}/edit")
@@ -181,6 +202,7 @@ async def conversation_detail(request: Request, conversation_id: int, admin: Pla
         business = await db.get(Business, convo.business_id)
         view = await conversation_view(db, convo, business, back_href=f"/platform/businesses/{business.id}/calls",
                                        back_label="Recent calls")
+        view["show_routing"] = True
     return render(request, "platform/conversation.html", admin=admin, **view)
 
 
@@ -188,6 +210,36 @@ async def conversation_detail(request: Request, conversation_id: int, admin: Pla
 async def old_restaurant_links(rest: str):
     """Links from before businesses of every kind were supported."""
     return go(f"/platform/businesses/{rest}")
+
+
+# --- website demo requests ---------------------------------------------------------------
+DEMO_STATUSES = {"new": "New", "contacted": "Contacted", "onboarded": "Onboarded", "closed": "Closed"}
+
+
+@router.get("/demo-requests")
+async def demo_requests(request: Request, admin: PlatformAdmin = Depends(current_platform_admin), show: str = "open"):
+    query = select(DemoRequest).order_by(DemoRequest.created_at.desc()).limit(200)
+    if show != "all":
+        query = query.where(DemoRequest.status.in_(("new", "contacted")))
+    async with db_session(request) as db:
+        leads = list(await db.scalars(query))
+    return render(request, "platform/demo_requests.html", admin=admin, leads=leads, show=show,
+                  statuses=DEMO_STATUSES, types=TYPES)
+
+
+@router.post("/demo-requests/{lead_id}", dependencies=[Depends(check_csrf)])
+async def update_demo_request(request: Request, lead_id: int, admin: PlatformAdmin = Depends(current_platform_admin)):
+    form = await request.form()
+    async with db_session(request) as db:
+        lead = await db.get(DemoRequest, lead_id)
+        if lead is not None:
+            status = str(form.get("status") or "")
+            if status in DEMO_STATUSES:
+                lead.status = status
+            if "notes" in form:
+                lead.notes = str(form.get("notes") or "").strip()[:2000] or None
+            await db.commit()
+    return go(f"/platform/demo-requests#lead-{lead_id}")
 
 
 # --- platform admins -----------------------------------------------------------------------

@@ -17,9 +17,17 @@ from app.capabilities.core import core_tools
 from app.capabilities.ordering.catalog import catalog_prompt_text, load_catalog
 from app.capabilities.ordering.tools import ordering_tools
 from app.db.models import Business, Faq
+from app.handoff.service import can_transfer
 from app.money import format_money
 
 MAX_PROMPT_FAQS = 30
+
+TRANSFER_HEADING = "# When to bring in a person (transfer_to_human)\n"
+CALL_BACK_HEADING = (
+    "# When the caller needs a person\n"
+    "We don't transfer calls. In these cases, tell the caller warmly that a team member will call them back in a "
+    "few minutes; get their name, confirm the callback number and what it's about, then call request_callback.\n"
+)
 
 
 @dataclass
@@ -31,7 +39,7 @@ class Assistant:
 
 async def build_assistant(db: AsyncSession, business: Business, caller: CallerContext) -> Assistant:
     btype = get_type(business.business_type)
-    tools = core_tools()
+    tools = core_tools(transfers=can_transfer(business))
     if business.takes_orders:
         tools = ordering_tools(business) + tools
     return Assistant(
@@ -104,7 +112,8 @@ Hours:
 When the caller wants someone to call back, or nobody can take a transfer: get their name, confirm the best callback number (they may use the number they're calling from), and what it's about. Then call request_callback.""",
         """# Ending calls
 Call end_call only after the caller has said goodbye or clearly has nothing else, and you've said goodbye too. If unsure, ask "Is there anything else I can help you with?" first.""",
-        "# When to bring in a person (transfer_to_human)\n" + "\n".join(f"- {rule}" for rule in handoff_rules),
+        (TRANSFER_HEADING if can_transfer(business) else CALL_BACK_HEADING)
+        + "\n".join(f"- {rule}" for rule in handoff_rules),
         """# Rules
 - Facts, prices and policies only come from this page or tool results. If you don't know something, say so and offer a team member or a message. Never guess.
 - Say amounts naturally ("twelve ninety-nine").

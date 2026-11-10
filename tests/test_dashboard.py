@@ -332,3 +332,23 @@ def test_public_order_status_page(client):
     assert CUSTOMER_PHONE not in resp.text  # the caller's own number is never shown
     assert client.get("/o/" + "x" * 22).status_code == 404
     assert client.get("/o/short").status_code == 404
+
+
+def test_owner_turns_transfers_off_and_back_on(client):
+    sign_in(client)
+    page = client.get("/app/settings")
+    assert 'name="transfers_enabled" >' in page.text  # the test business starts with transfers off
+    form = {**valid_form(), "csrf": csrf_from(page.text)}
+    client.post("/app/settings", data={**form, "transfers_enabled": "on"})
+    assert get(client, Business, client.ids["shop"]).transfers_enabled is True
+    assert 'name="transfers_enabled" checked' in client.get("/app/settings").text
+    form.pop("transfers_enabled", None)  # unticked box: browsers send nothing
+    client.post("/app/settings", data=form)
+    assert get(client, Business, client.ids["shop"]).transfers_enabled is False
+
+
+def test_return_calls_page_shows_waiting_time(client):
+    sign_in(client)
+    page = client.get("/app/callbacks")
+    assert "Return calls" in page.text and "Waiting " in page.text and "Mark called back" in page.text
+    assert 'aria-label="1 waiting for a call back"' in client.get("/app/calls").text

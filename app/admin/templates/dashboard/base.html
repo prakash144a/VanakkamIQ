@@ -19,11 +19,11 @@
   <div class="tabs-inner">
     {% if b.takes_orders %}{{ tab('orders', '/app/orders', 'Orders', counts.new_orders, 'new') }}{% endif %}
     {{ tab('calls', '/app/calls', 'Calls', counts.live, 'live') }}
-    {{ tab('callbacks', '/app/callbacks', 'Messages', counts.callbacks, 'to call back') }}
+    {{ tab('callbacks', '/app/callbacks', 'Return calls', counts.callbacks, 'waiting for a call back') }}
     {{ tab('customers', '/app/customers', 'Customers') }}
     {% if b.takes_orders %}{{ tab('catalog', '/app/catalog', btype.catalog) }}{% endif %}
     {{ tab('faqs', '/app/faqs', 'Saved answers') }}
-    {% if staff.is_owner %}{{ tab('settings', '/app/settings', 'Settings') }}{% endif %}
+    {% if staff.is_owner %}{{ tab('team', '/app/team', 'Team') }}{{ tab('settings', '/app/settings', 'Settings') }}{% endif %}
   </div>
 </nav>
 {% if not b.is_active %}

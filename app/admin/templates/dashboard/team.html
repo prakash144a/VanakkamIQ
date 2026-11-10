@@ -1,0 +1,72 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Team · {{ b.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Team</h1>
+    <p class="muted">Everyone who can sign in to the {{ b.name }} dashboard. They sign in with a code emailed to them; there are no passwords.</p>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+{% if added %}<div class="alert alert-success" role="status"><strong>Added.</strong><span>{{ added }} can now sign in at <code>/app/login</code>.</span></div>{% endif %}
+
+<div class="grid-2" style="align-items:start">
+  <section class="card" aria-label="Team members">
+    {% for row in rows %}{% set u = row.u %}
+    <div class="team-member">
+      <div>
+        <strong>{{ u.name or u.email }}</strong>{% if u.id == staff.user.id %} <span class="chip">You</span>{% endif %}
+        {% if u.name %}<div class="small">{{ u.email }}</div>{% endif %}
+        <div class="muted small">{{ 'Last signed in ' ~ row.last.strftime('%b %d, %Y') if row.last else 'Never signed in' }}</div>
+      </div>
+      <div class="row">
+        <form method="post" action="/app/team/{{ u.id }}/role" class="row">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <label class="sr-only" for="role-{{ u.id }}">Role for {{ u.email }}</label>
+          <select id="role-{{ u.id }}" name="role" class="select-compact">
+            {% for key, label in roles.items() %}<option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-quiet" type="submit">Save</button>
+        </form>
+        {% if u.id != staff.user.id %}
+        <form method="post" action="/app/team/{{ u.id }}/delete" data-confirm="Remove {{ u.email }}? They won't be able to sign in.">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="btn btn-quiet" type="submit">Remove</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="add-h">
+      <h2 id="add-h">Add someone</h2>
+      <form method="post" action="/app/team" class="stack">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required autocomplete="off" value="{{ v.get('email', '') }}">
+        </div>
+        <div class="field">
+          <label for="name">Name (optional)</label>
+          <input id="name" name="name" type="text" maxlength="120" value="{{ v.get('name', '') }}">
+        </div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            {% for key, label in roles.items() %}<option value="{{ key }}" {% if v.get('role', 'staff') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><button class="btn btn-primary" type="submit">Add to team</button></div>
+      </form>
+    </section>
+    <section class="card" aria-labelledby="roles-h">
+      <h2 id="roles-h">What each role can do</h2>
+      <div class="menu-item" style="flex-direction:column;gap:2px"><strong>Staff</strong><span class="muted small">Work orders, return calls and customers; see calls; mark {{ btype.catalog|lower }} items unavailable.</span></div>
+      <div class="menu-item" style="flex-direction:column;gap:2px"><strong>Owner</strong><span class="muted small">Everything staff can do, plus settings, the {{ btype.catalog|lower }}, saved answers and the team.</span></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

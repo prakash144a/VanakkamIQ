@@ -43,13 +43,16 @@ p { margin: 0; }
 }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; flex-wrap: wrap; }
 /* Brand kit: horizontal logo at least 120 px wide; never recoloured or stretched. */
-.brand-logo { display: block; height: 30px; width: auto; }
+/* Logo: the Hello bubble mark + "Vanakkam" in ink and "IQ" in terracotta (Manrope ExtraBold). */
+.logo { display: inline-flex; align-items: center; gap: calc(var(--logo-size) * 0.3); line-height: 1; }
+.logo-mark { display: block; flex: none; }
+.logo-word { font-weight: 800; font-size: calc(var(--logo-size) * 0.68); letter-spacing: -0.035em; color: var(--ink); white-space: nowrap; }
+.logo-iq { color: var(--accent); }
 .brand-sub { display: block; font-size: 12.5px; color: var(--muted); padding-left: 12px; border-left: 1px solid var(--border); line-height: 1.3; }
 .brand-large { flex-direction: column; align-items: flex-start; gap: 6px; }
-.brand-large .brand-logo { height: 40px; }
 .brand-large .brand-sub { padding-left: 0; border-left: 0; }
 .powered { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
-.powered img { height: 25px; width: auto; }
+.powered .logo-word { font-size: 15px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
@@ -225,6 +228,7 @@ input[type=search] { width: 100%; min-height: 44px; padding: 10px 14px; font: in
 .live-call { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--success-soft); color: var(--ink); text-decoration: none; }
 .live-call:hover { color: var(--ink); }
 .message-text { font-size: 15px; white-space: pre-line; }
+.message-late { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .message h2 a { color: inherit; }
 .catalog-list { list-style: none; margin: 0; padding: 0; }
 .catalog-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; scroll-margin-top: 80px; }
@@ -239,6 +243,9 @@ input[type=search] { width: 100%; min-height: 44px; padding: 10px 14px; font: in
 .switch[aria-checked=true] .switch-thumb { transform: translateX(16px); }
 .switch-text { min-width: 86px; text-align: left; font-size: 13px; }
 .faq { scroll-margin-top: 80px; }
+.team-member { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.team-member:last-child { border-bottom: 0; }
+select.select-compact { width: auto; min-height: 40px; padding: 6px 12px; }
 .code-sample { margin: 0; padding: 14px; background: var(--surface-2); border-radius: var(--radius-sm); font-size: 12.5px; line-height: 1.5; overflow-x: auto; }
 input[type=file] { font: inherit; min-height: 44px; }
 

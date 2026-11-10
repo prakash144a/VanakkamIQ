@@ -208,6 +208,7 @@ def parse_business_fields(
         if values["large_order_cents"] is None:
             errors.append("Large-order amount should be a dollar amount, like 250.")
 
+    values["transfers_enabled"] = bool(form.get("transfers_enabled"))
     values["handoff_phone"] = parse_phone(get("handoff_phone"), "Staff transfer number", errors)
     values["notify_phone"] = parse_phone(get("notify_phone"), "Staff alert number", errors)
 
@@ -236,7 +237,7 @@ def business_form_values(business: Business, phone_number: str | None = None) ->
         "retention_days": str(business.transcript_retention_days or ""),
         "phone_number": phone_number or "",
     }
-    for key in ("takes_orders", "offers_pickup", "offers_delivery", "is_active"):
+    for key in ("takes_orders", "offers_pickup", "offers_delivery", "is_active", "transfers_enabled"):
         if getattr(business, key):
             v[key] = "on"
     for day in DAYS:
@@ -253,7 +254,7 @@ def new_form_defaults(business_type: str = DEFAULT_TYPE) -> dict:
     btype = get_type(business_type)
     values = {
         "business_type": btype.key, "timezone": "America/New_York", "language": "en-US", "voice": "marin",
-        "offers_pickup": "on", "is_active": "on",
+        "offers_pickup": "on", "is_active": "on", "transfers_enabled": "on",
     }
     if btype.takes_orders:
         values["takes_orders"] = "on"
@@ -426,9 +427,9 @@ async def setup_checklist(db: AsyncSession, business: Business) -> list[SetupChe
         SetupCheck("Owner login", bool(owners), f"{owners} account(s)"),
         SetupCheck("Saved answers (FAQs)", bool(faqs), f"{faqs} saved answer(s)" if faqs else
                    "None yet: the AI can only share hours and address", required=not business.takes_orders),
-        SetupCheck("Staff transfer number", bool(business.handoff_phone),
-                   business.handoff_phone or "Not set: callers who need a person can only leave a message",
-                   required=False),
+        SetupCheck("Transfers to staff", bool(business.handoff_phone and business.transfers_enabled),
+                   f"On: {business.handoff_phone}" if business.handoff_phone and business.transfers_enabled
+                   else "Off: callers who ask for a person are promised a call back", required=False),
         SetupCheck("Staff alert number", bool(business.notify_phone),
                    business.notify_phone or "Not set: no text alerts for new orders and messages", required=False),
     ]

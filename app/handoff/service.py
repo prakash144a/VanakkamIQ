@@ -5,11 +5,24 @@ from app.business_hours import is_open
 from app.db.models import Business, Conversation, Handoff
 from app.voice.sip_headers import normalize_e164
 
+CALL_BACK_PROMISE = (
+    "Tell the caller warmly that a team member will call them back in a few minutes. Get their name, confirm "
+    "the best number to reach them (they may use the number they're calling from) and what it's about, "
+    "then call request_callback."
+)
+
+
+def can_transfer(business: Business) -> bool:
+    """Live transfers need the owner's switch on and a staff number to ring."""
+    return bool(business.transfers_enabled and business.handoff_phone)
+
 
 async def start_transfer(ctx: ToolContext, reason: str) -> dict:
     async with ctx.session_factory() as db:
         business = await db.get(Business, ctx.business_id)
-        if not business.handoff_phone or not is_open(business):
+        if not can_transfer(business):
+            return {"ok": False, "reason": "this business doesn't transfer calls", "instruction": CALL_BACK_PROMISE}
+        if not is_open(business):
             why = "we're closed right now" if business.handoff_phone else "no team member is available by phone"
             return {
                 "ok": False,
@@ -57,4 +70,4 @@ async def request_callback(ctx: ToolContext, name: str | None, phone: str | None
     await ctx.notifier.callback_requested(business, name, callback_phone, message)
     await ctx.notifier.callback_received(business, callback_phone)
     ctx.bus.publish(ctx.business_id, {"type": "callback.requested", "conversation_id": ctx.conversation_id})
-    return {"ok": True, "instruction": "Confirm a team member will call them back soon, then ask if there's anything else."}
+    return {"ok": True, "instruction": "Confirm a team member will call them back shortly, then ask if there's anything else."}

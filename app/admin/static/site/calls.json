@@ -1,0 +1,34 @@
+{
+  "restaurant": {
+    "name": "Restaurant",
+    "src": "/static/site/call-restaurant.wav",
+    "duration": 42.1,
+    "lines": [
+      ["ai", 0.0, "Vanakkam, Dhivya! Thanks for calling Chennai Spice House. Lovely to hear from you again. Would you like your usual chicken biryani?"],
+      ["caller", 8.1, "Hi! Yes, please. Can you make it medium spicy? And add a mango lassi."],
+      ["ai", 14.4, "Of course. One chicken biryani, medium spice, and one mango lassi. That comes to $22.66 with tax. Pickup or delivery?"],
+      ["caller", 23.65, "Pickup, around seven fifteen."],
+      ["ai", 26.5, "Perfect. Your order number is 1024, ready for pickup at 7:15. Anything else I can help with?"],
+      ["caller", 33.55, "No, that's it. Thank you!"],
+      ["ai", 36.6, "Thank you, Dhivya. See you at 7:15. Have a lovely evening!"]
+    ]
+  },
+  "salon": {
+    "name": "Salon",
+    "src": "/static/site/call-salon.wav",
+    "duration": 48.9,
+    "lines": [
+      ["ai", 0.0, "Vanakkam! Thanks for calling Glow Hair Studio. How can I help you today?"],
+      ["caller", 5.05, "Hi, how much is a women's haircut? And are you open on Sunday?"],
+      ["ai", 9.25, "A women's haircut starts at $45. On Sundays we're open from ten to four."],
+      ["caller", 15.3, "Great. Could I talk to Maya about colouring my hair?"],
+      ["ai", 19.65, "Maya's with a client right now, but she'll call you back in a few minutes. May I have your name?"],
+      ["caller", 25.15, "It's Anita."],
+      ["ai", 27.8, "Thanks, Anita. Is the number you're calling from the best one to reach you?"],
+      ["caller", 33.25, "Yes, it is."],
+      ["ai", 35.5, "Perfect. Maya will call you back shortly about hair colouring. Anything else I can help with?"],
+      ["caller", 41.95, "No, that's all. Thank you!"],
+      ["ai", 45.2, "You're welcome, Anita. Have a wonderful day!"]
+    ]
+  }
+}

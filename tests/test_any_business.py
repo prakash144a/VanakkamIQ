@@ -34,7 +34,7 @@ async def test_questions_only_business_gets_no_ordering_tools(services):
 
     body = json.loads(accept.calls.last.request.content)
     tools = {t["name"] for t in body["tools"]}
-    assert tools == {"answer_faq", "transfer_to_human", "request_callback", "end_call"}
+    assert tools == {"answer_faq", "request_callback", "end_call"}  # no staff number, so no transfers
     instructions = body["instructions"]
     assert "receptionist for Bright Smile Dental" in instructions
     assert "Family dental clinic" in instructions and "Do you take walk-ins?" in instructions
@@ -161,3 +161,40 @@ def test_migrations_build_the_same_schema_as_the_models(tmp_path, monkeypatch):
     significant = [d for d in diffs if (d[0] if isinstance(d, tuple) else d[0][0]) in (
         "add_table", "remove_table", "add_column", "remove_column", "add_index", "remove_index", "modify_nullable")]
     assert significant == []
+
+
+@respx.mock
+async def test_transfers_switched_off_promise_a_call_back(services):
+    async with services.session_factory() as db:
+        business = await db.scalar(select(Business))
+        business.handoff_phone = "+15559990000"
+        business.transfers_enabled = False
+        await db.commit()
+    accept = respx.post(url__regex=ACCEPT).mock(return_value=httpx.Response(200))
+    _, task, conn = await start_call(services, "rtc_off", "+15551230000")
+    body = json.loads(accept.calls.last.request.content)
+    assert "transfer_to_human" not in {t["name"] for t in body["tools"]}
+    assert "We don't transfer calls" in body["instructions"]
+    assert "call them back in a few minutes" in body["instructions"]
+
+    # Even if the AI asks for a transfer anyway, nothing is transferred.
+    from app.agent.tools import ToolContext
+    from app.handoff.service import start_transfer
+    ctx = ToolContext(session_factory=services.session_factory, business_id=business.id,
+                      conversation_id=(await _conversation_id(services)), caller_phone="+15551230000", customer_id=None,
+                      call=conn, notifier=services.notifier, bus=services.bus)
+    refused = await start_transfer(ctx, "Caller asked for the manager")
+    assert refused["ok"] is False and "call them back in a few minutes" in refused["instruction"]
+
+    await conn.call_tool("request_callback", name="Ravi", message="Wants to talk to the manager")
+    await end_call(conn, task)
+    assert conn.transferred_to is None
+    async with services.session_factory() as db:
+        handoff = await db.scalar(select(Handoff))
+        assert handoff.outcome == "callback_requested" and handoff.resolved_at is None
+        assert (await db.scalar(select(Conversation))).status == "escalated"
+
+
+async def _conversation_id(services) -> int:
+    async with services.session_factory() as db:
+        return (await db.scalar(select(Conversation))).id

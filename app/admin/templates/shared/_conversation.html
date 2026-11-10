@@ -4,6 +4,7 @@
     <a href="{{ back_href }}" class="small">← {{ back_label }}</a>
     <h1>Call from {{ c.caller_phone or 'hidden number' }}</h1>
     <p class="muted">{{ when.strftime('%A %b %d, %I:%M %p') if when else '' }} · {{ duration }}</p>
+    {% if show_routing %}<p class="muted small">Routed {% if c.routed_by == 'only active business' %}without a dialed number (only active business){% elif c.routed_by %}by the <code>{{ c.routed_by }}</code> header{% else %}(not recorded){% endif %}{% if c.dialed_number %} · dialed {{ c.dialed_number }}{% endif %}</p>{% endif %}
   </div>
   {{ status_chip(c.status) }}
 </div>
@@ -50,10 +51,10 @@
 
     {% for h in handoffs %}
     <section class="card" aria-label="Handoff">
-      <h2>{{ 'Message for a callback' if h.outcome == 'callback_requested' else 'Transfer to staff' }}</h2>
+      <h2>{{ 'Return call' if h.outcome == 'callback_requested' else 'Transfer to staff' }}</h2>
       <p>{{ h.message or h.reason }}</p>
       {% if h.callback_phone %}<p class="muted">Call back: {{ h.callback_name or '' }} {{ h.callback_phone }}</p>{% endif %}
-      <p class="muted small">{{ 'Handled' if h.resolved_at else h.outcome|replace('_', ' ')|capitalize }}</p>
+      <p class="muted small">{% if h.resolved_at %}Called back{% if h.resolved_by %} by {{ h.resolved_by }}{% endif %}{% elif h.outcome == 'callback_requested' %}Waiting for a call back{% else %}{{ h.outcome|replace('_', ' ')|capitalize }}{% endif %}</p>
     </section>
     {% endfor %}
   </div>

@@ -31,9 +31,11 @@ async def purge_old_transcripts(session_factory: async_sessionmaker, now: dateti
                 Conversation.status != "active"))
             result = await db.execute(delete(ConversationEvent).where(ConversationEvent.conversation_id.in_(old_calls)))
             removed += result.rowcount or 0
-            # Summaries can quote the caller; keep the order part, drop quotes.
+            # Summaries describe what was said (and AI ones can name people), so they go too.
+            # Orders and return calls keep their own records.
             await db.execute(update(Conversation).where(
-                Conversation.id.in_(old_calls), Conversation.summary.like("Caller said:%")).values(summary=DELETED_NOTE))
+                Conversation.id.in_(old_calls), Conversation.summary.is_not(None),
+                Conversation.summary != DELETED_NOTE).values(summary=DELETED_NOTE))
         await db.commit()
     if removed:
         log.info("Deleted %d transcript line(s) past retention", removed)

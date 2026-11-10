@@ -2,6 +2,7 @@
 
 - admin host  → the platform admin (/platform); "/" opens it.
 - owner host  → the business dashboard (/app) and callers' order pages (/o/...); "/" opens the dashboard.
+- site host   → the public website at "/"; dashboard and admin pages go to their own domains.
 - any other host (the default Azure address) keeps working for the OpenAI webhook and health
   checks, and sends people opening admin pages to the right domain.
 Only GET/HEAD requests are redirected, so a form post is never turned into a broken redirect.

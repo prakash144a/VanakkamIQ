@@ -46,7 +46,7 @@ async def add_to_order(ctx: ToolContext, args: dict) -> dict:
         await db.commit()
     result = {"ok": True, "added": f"{quantity} x {item.name}", "order": view}
     if large:
-        result["note"] = "This is now a large order. After reviewing it, offer to connect the caller with a team member to confirm it (transfer_to_human)."
+        result["note"] = "This is now a large order. After reviewing it, offer a team member to confirm it (as your rules for bringing in a person say)."
     return result
 
 

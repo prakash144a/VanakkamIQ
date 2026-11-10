@@ -90,6 +90,10 @@
 {%- endmacro %}
 
 {% macro staff_phones() -%}
+<label class="check check-block">
+  <input type="checkbox" name="transfers_enabled" {{ checked('transfers_enabled') }}>
+  <span><strong>Transfer callers to staff</strong><br><span class="muted small">On: when a caller asks for a person, the AI connects them to the staff transfer number below (during opening hours). Off: the AI tells them a team member will call them back in a few minutes, and the call appears under <strong>Return calls</strong> until someone marks it done.</span></span>
+</label>
 <div class="grid-2">
   {{ text('handoff_phone', 'Staff transfer number', type='tel', hint='Where the AI transfers callers who need a person (during open hours). Without it, callers leave a message.') }}
   {{ text('notify_phone', 'Staff alert number (text messages)', type='tel', hint='Gets a text for each new order, transfer and message.') }}

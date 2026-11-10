@@ -85,12 +85,16 @@ def build_headers(creds: AcsCredentials, *, path_and_query: str, body: bytes, da
     }
 
 
-def build_payload(sender: str, to: str, subject: str, text: str, html: str = "") -> dict:
-    return {
+def build_payload(sender: str, to: str, subject: str, text: str, html: str = "",
+                  reply_to: tuple[str, str] | None = None) -> dict:
+    payload = {
         "senderAddress": sender,
         "recipients": {"to": [{"address": to}]},
         "content": {"subject": subject, "plainText": text, **({"html": html} if html else {})},
     }
+    if reply_to:  # (address, display name): "Reply" goes to the visitor, not the no-reply sender
+        payload["replyTo"] = [{"address": reply_to[0], "displayName": reply_to[1]}]
+    return payload
 
 
 class EmailService:
@@ -98,20 +102,21 @@ class EmailService:
         self._http = http
         self._connection_string = connection_string
         self._sender = sender
-        self.outbox: deque[tuple[str, str, str]] = deque(maxlen=OUTBOX_KEPT)  # (to, subject, text) when not sending
+        self.outbox: deque[tuple] = deque(maxlen=OUTBOX_KEPT)  # (to, subject, text[, reply_to]) when not sending
 
     @property
     def will_send(self) -> bool:
         return bool(self._connection_string and self._sender)
 
-    async def send(self, to: str, subject: str, text: str, html: str = "") -> None:
+    async def send(self, to: str, subject: str, text: str, html: str = "",
+                   reply_to: tuple[str, str] | None = None) -> None:
         if not self.will_send:
-            self.outbox.append((to, subject, text))
+            self.outbox.append((to, subject, text, reply_to) if reply_to else (to, subject, text))
             log.info("Email not sent (ACS not configured): %d characters", len(text))
             return
         creds = parse_connection_string(self._connection_string)
         path_and_query = f"/emails:send?api-version={API_VERSION}"
-        body = json.dumps(build_payload(self._sender, to, subject, text, html)).encode()
+        body = json.dumps(build_payload(self._sender, to, subject, text, html, reply_to)).encode()
         headers = build_headers(creds, path_and_query=path_and_query, body=body)
         try:
             resp = await self._http.post(f"{creds.endpoint.rstrip('/')}{path_and_query}", content=body,

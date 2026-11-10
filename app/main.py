@@ -13,8 +13,10 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 
+from app import site_routes
 from app.admin import dashboard_routes, platform_routes, public_routes
 from app.agent.call_manager import CallManager, ConnectionFactory
+from app.agent.summary import Summarizer
 from app.auth.email import EmailService
 from app.auth.otp import OtpService
 from app.config import Settings, get_settings
@@ -24,6 +26,7 @@ from app.hosts import redirect_for
 from app.notify.sms import Notifier
 from app.retention import retention_loop
 from app.telephony.telnyx import TelnyxClient
+from app.telephony import telnyx_routing
 from app.voice.openai_sip import webhook
 from app.voice.openai_sip.calls_api import RealtimeCallsAPI
 from app.voice.openai_sip.connection import OpenAISipConnection
@@ -40,6 +43,7 @@ class Services:
     calls_api: RealtimeCallsAPI
     call_manager: CallManager
     otp: OtpService
+    telnyx: TelnyxClient | None = None
 
 
 def build_services(settings: Settings, connection_factory: ConnectionFactory | None = None) -> Services:
@@ -55,10 +59,12 @@ def build_services(settings: Settings, connection_factory: ConnectionFactory | N
             return OpenAISipConnection(call_id, calls_api, settings.openai_api_key, settings.openai_realtime_ws_url)
     call_manager = CallManager(
         settings=settings, session_factory=session_factory, calls_api=calls_api,
-        connection_factory=connection_factory, bus=bus, notifier=notifier,
+        connection_factory=connection_factory, bus=bus, notifier=notifier, telnyx=telnyx,
+        summarizer=Summarizer(http, settings.openai_api_key, settings.openai_base_url, settings.openai_summary_model,
+                              settings.ai_summaries),
     )
     otp = OtpService(settings, EmailService(http, settings.acs_connection_string, settings.acs_sender))
-    return Services(settings, engine, session_factory, http, bus, notifier, calls_api, call_manager, otp)
+    return Services(settings, engine, session_factory, http, bus, notifier, calls_api, call_manager, otp, telnyx)
 
 
 def create_app(settings: Settings | None = None, connection_factory: ConnectionFactory | None = None) -> FastAPI:
@@ -104,13 +110,11 @@ def create_app(settings: Settings | None = None, connection_factory: ConnectionF
 
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "admin" / "static"), name="static")
     app.include_router(webhook.router)
+    app.include_router(telnyx_routing.router)
     app.include_router(platform_routes.router)
     app.include_router(dashboard_routes.router)
     app.include_router(public_routes.router)
-
-    @app.get("/", include_in_schema=False)
-    async def root() -> RedirectResponse:
-        return RedirectResponse("/app")
+    app.include_router(site_routes.router)
 
     @app.get("/healthz")
     async def healthz() -> dict:

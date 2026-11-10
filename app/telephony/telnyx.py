@@ -21,3 +21,18 @@ class TelnyxClient:
         if resp.status_code >= 400:
             log.error("Telnyx SMS to ***%s failed: %s %s", to_number[-4:], resp.status_code, resp.text[:300])
             resp.raise_for_status()
+
+    async def transfer_call(self, call_control_id: str, to: str, *, custom_headers: list[dict] | None = None,
+                            from_: str | None = None) -> None:
+        """Voice API (Call Control): send a call to a new destination (a SIP URI or a +1 number)."""
+        body: dict = {"to": to}
+        if custom_headers:
+            body["custom_headers"] = custom_headers
+        if from_:
+            body["from"] = from_
+        resp = await self._client.post(
+            f"{self._base}/calls/{call_control_id}/actions/transfer", json=body, headers=self._headers, timeout=10.0,
+        )
+        if resp.status_code >= 400:
+            log.error("Telnyx transfer failed: %s %s", resp.status_code, resp.text[:300])
+            resp.raise_for_status()

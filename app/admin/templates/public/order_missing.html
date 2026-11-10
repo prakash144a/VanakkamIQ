@@ -2,9 +2,10 @@
 {% block title %}Order not found{% endblock %}
 {% block head %}<meta name="robots" content="noindex">{% endblock %}
 {% block body %}
+{% from "shared/_ui.html" import logo %}
 <main class="public-wrap">
   <div class="card public-card">
-    <img class="brand-logo" style="align-self:flex-start" src="/static/brand/vanakkamiq-logo.svg" alt="VanakkamIQ" width="148" height="30">
+    <div>{{ logo(30) }}</div>
     <h1>Order not found</h1>
     <p class="muted">The link may be incomplete. Check the text message, or call the business.</p>
   </div>

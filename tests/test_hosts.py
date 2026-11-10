@@ -51,7 +51,8 @@ def test_middleware_redirects_by_host(tmp_path):
         resp = client.get("/platform/login", headers={"host": OWNER}, follow_redirects=False)
         assert resp.status_code == 308 and resp.headers["location"] == f"https://{ADMIN}/platform/login"
         login = client.get("/platform/login", headers={"host": ADMIN})
-        assert login.status_code == 200 and "/static/brand/vanakkamiq-logo.svg" in login.text
+        assert login.status_code == 200 and 'class="logo-word">Vanakkam<span class="logo-iq">IQ</span>' in login.text
         assert 'rel="icon" href="/static/brand/vanakkamiq-favicon.svg"' in login.text
-        assert client.get("/static/brand/vanakkamiq-logo.svg").status_code == 200
+        for f in ("vanakkamiq-mark.svg", "favicon.ico", "apple-touch-icon-180.png", "site.webmanifest"):
+            assert client.get(f"/static/brand/{f}").status_code == 200, f
         assert client.get("/healthz").status_code == 200

@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     # Empty = the database's default schema (public).
     database_schema: str = ""
     public_base_url: str = "http://localhost:8000"
+    # Custom domains (optional): the business dashboard and the platform admin each get their
+    # own address; the default Azure address still serves the OpenAI webhook and health check.
+    owner_host: str = ""  # e.g. owner.vanakkamiq.nativemindsai.com
+    admin_host: str = ""  # e.g. admin.vanakkamiq.nativemindsai.com
     secret_key: str = "change-me"
 
     # OpenAI Realtime over SIP

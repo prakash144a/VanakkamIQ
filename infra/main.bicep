@@ -37,6 +37,14 @@ param acsConnectionString string = ''
 @description('Sender address for sign-in code emails (must be a verified ACS sender).')
 param acsSender string = 'DoNotReply@nativemindsai.com'
 
+@description('Business dashboard domain, e.g. owner.vanakkamiq.example.com. Empty = only the default Azure address.')
+param ownerHost string = ''
+@description('Platform admin domain, e.g. admin.vanakkamiq.example.com.')
+param adminHost string = ''
+@description('Managed certificate names in the environment for ownerHost and adminHost (created by `az containerapp hostname bind`; see docs/azure-deploy.md).')
+param ownerCertificate string = ''
+param adminCertificate string = ''
+
 var suffix = uniqueString(resourceGroup().id)
 var acrName = toLower('${appName}${suffix}')
 
@@ -122,6 +130,15 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
         targetPort: 8000
         transport: 'auto'
         allowInsecure: false
+        // Declared here so a redeploy keeps them; the certificates already exist in the environment.
+        customDomains: concat(
+          empty(ownerHost) || empty(ownerCertificate) ? [] : [
+            { name: ownerHost, bindingType: 'SniEnabled', certificateId: '${env.id}/managedCertificates/${ownerCertificate}' }
+          ],
+          empty(adminHost) || empty(adminCertificate) ? [] : [
+            { name: adminHost, bindingType: 'SniEnabled', certificateId: '${env.id}/managedCertificates/${adminCertificate}' }
+          ]
+        )
       }
       registries: [
         { server: acr.properties.loginServer, identity: identity.id }
@@ -138,7 +155,10 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApp) {
           image: image
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: concat(plainEnv, secretEnv, [
-            { name: 'PUBLIC_BASE_URL', value: 'https://${appName}.${env.properties.defaultDomain}' }
+            // Order-status links in texts use the owner domain when there is one.
+            { name: 'PUBLIC_BASE_URL', value: empty(ownerHost) ? 'https://${appName}.${env.properties.defaultDomain}' : 'https://${ownerHost}' }
+            { name: 'OWNER_HOST', value: ownerHost }
+            { name: 'ADMIN_HOST', value: adminHost }
           ])
           probes: [
             {

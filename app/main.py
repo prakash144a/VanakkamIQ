@@ -20,6 +20,7 @@ from app.auth.otp import OtpService
 from app.config import Settings, get_settings
 from app.db.session import make_engine, make_session_factory
 from app.events import EventBus
+from app.hosts import redirect_for
 from app.notify.sms import Notifier
 from app.retention import retention_loop
 from app.telephony.telnyx import TelnyxClient
@@ -93,6 +94,14 @@ def create_app(settings: Settings | None = None, connection_factory: ConnectionF
         same_site="lax", https_only=settings.app_env == "production",
         max_age=settings.session_days * 86400,  # re-sent on every response, so active sessions stay signed in
     )
+    @app.middleware("http")
+    async def domains(request, call_next):
+        target = redirect_for(settings, request.headers.get("host", ""), request.method, request.url.path,
+                              request.url.query)
+        if target:
+            return RedirectResponse(target, status_code=308 if target.startswith("https://") else 307)
+        return await call_next(request)
+
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "admin" / "static"), name="static")
     app.include_router(webhook.router)
     app.include_router(platform_routes.router)

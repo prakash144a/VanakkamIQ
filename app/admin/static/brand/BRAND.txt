@@ -1,0 +1,33 @@
+VanakkamIQ brand kit - "One Thread" kolam logo
+Tagline: Understands. Cares. Gets it done.
+
+WHICH FILE TO USE
+  Website header, documents, slides ... svg/vanakkamiq-logo.svg (or png/ version)
+  Website hero, flyers, pitch deck ..... svg/vanakkamiq-logo-tagline.svg
+  Square spaces, posters, signage ...... svg/vanakkamiq-logo-stacked.svg
+  Dark backgrounds ..................... any file ending in -dark
+  Single-colour print, stamps, T-shirts  any file ending in -mono
+  On photos or busy backgrounds ........ any file ending in -mono-white
+  WhatsApp / Google Business / Instagram png/vanakkamiq-profile-picture-1080.png
+  Mobile app icon ...................... png/vanakkamiq-app-icon-1024.png (and 512, 192)
+  iPhone home-screen bookmark .......... png/apple-touch-icon-180.png
+  Browser tab .......................... png/favicon.ico or svg/vanakkamiq-favicon.svg
+
+SVG files scale to any size without blur; use them wherever the tool accepts SVG.
+PNG files have transparent backgrounds except the icons and dark versions.
+
+COLOURS
+  Kolam Green  #0F4C45   main colour: kolam line and "Vanakkam"
+  Turmeric     #F2A900   kolam dots, accents
+  Amber        #E39B00   "IQ" on light backgrounds
+  Rice Cream   #FFF4DC   kolam line on dark backgrounds
+  Deep Green   #0B3A35   dark panels
+
+TYPEFACE
+  Lexend (free, Google Fonts). SemiBold for the wordmark and headings, Medium for the tagline and body.
+  All logo text is already converted to shapes, so the font does not need to be installed to use the logo files.
+
+USING THE LOGO
+  Clear space: keep empty space around the logo at least as wide as the gap between two kolam dots.
+  Minimum size: horizontal logo 120 px wide. Below 48 px, use the favicon (simplified 3x2 kolam).
+  Don't recolour, stretch, rotate, outline or add shadows.

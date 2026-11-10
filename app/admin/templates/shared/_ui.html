@@ -1,12 +1,7 @@
-{% macro brand(href, sub) -%}
-<a class="brand" href="{{ href }}">
-  <span class="brand-mark" aria-hidden="true">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2"/></svg>
-  </span>
-  <span>
-    <span class="brand-name">VanakkamIQ</span>
-    <span class="brand-sub">{{ sub }}</span>
-  </span>
+{% macro brand(href, sub, large=False) -%}
+<a class="brand {{ 'brand-large' if large }}" href="{{ href }}">
+  <img class="brand-logo" src="/static/brand/vanakkamiq-logo.svg" alt="VanakkamIQ" width="744" height="151">
+  {% if sub %}<span class="brand-sub">{{ sub }}</span>{% endif %}
 </a>
 {%- endmacro %}
 

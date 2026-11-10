@@ -44,6 +44,6 @@
     {% if o.fulfillment == 'pickup' and b.address %}<p><strong>Pick up at</strong><br>{{ b.address }}</p>{% endif %}
     {% if phone %}<a class="btn" href="tel:{{ phone }}">Call {{ b.name }}</a>{% endif %}
   </div>
-  <p class="muted small" style="text-align:center">Answered by VanakkamIQ</p>
+  <p class="powered">Answered by <img src="/static/brand/vanakkamiq-logo.svg" alt="VanakkamIQ" width="124" height="25"></p>
 </main>
 {% endblock %}

@@ -70,6 +70,33 @@ az containerapp exec -g vanakkamiq-rg -n vanakkamiq --command "python -m app.cli
 
 Then sign in at `<appUrl>/platform` and use **Add restaurant**.
 
+## 6b. Custom domains
+
+The dashboard and the platform admin each get an address under the company domain (same pattern as MemoriesIQ):
+
+| Address | Opens |
+|---|---|
+| `https://owner.vanakkamiq.nativemindsai.com` | Business dashboard (`/app`) and callers' order pages (`/o/...`) |
+| `https://admin.vanakkamiq.nativemindsai.com` | Platform admin (`/platform`) |
+
+The default Azure address keeps serving the OpenAI webhook and `/healthz`, and sends anyone opening `/app` or `/platform` there to the right domain.
+
+Set up once (the `nativemindsai.com` DNS zone is in resource group `rg-nativemindsai-web`):
+
+```bash
+FQDN=$(az containerapp show -g vanakkamiq-rg -n vanakkamiq --query properties.configuration.ingress.fqdn -o tsv)
+VID=$(az containerapp env show -g vanakkamiq-rg -n vanakkamiq-env --query properties.customDomainConfiguration.customDomainVerificationId -o tsv)
+for h in owner.vanakkamiq admin.vanakkamiq; do
+  az network dns record-set cname set-record -g rg-nativemindsai-web -z nativemindsai.com -n $h -c $FQDN
+  az network dns record-set txt add-record -g rg-nativemindsai-web -z nativemindsai.com -n asuid.$h -v $VID
+  az containerapp hostname add  -g vanakkamiq-rg -n vanakkamiq --hostname $h.nativemindsai.com
+  az containerapp hostname bind -g vanakkamiq-rg -n vanakkamiq --hostname $h.nativemindsai.com     --environment vanakkamiq-env --validation-method CNAME     # free managed certificate, renews itself
+done
+az containerapp hostname list -g vanakkamiq-rg -n vanakkamiq -o table   # note the certificate names
+```
+
+Then put `ownerHost`, `adminHost`, `ownerCertificate` and `adminCertificate` in `infra/secrets.local.json`. The Bicep template declares the domains from these, so a redeploy keeps them (without them, a redeploy would detach the domains), and sets `OWNER_HOST`, `ADMIN_HOST` and `PUBLIC_BASE_URL` (order links in texts use the owner domain).
+
 ## 7. Deploying a new version
 
 Pushes to GitHub never deploy. `.github/workflows/deploy.yml` only runs the tests on every push and pull request.

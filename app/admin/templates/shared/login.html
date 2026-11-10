@@ -4,7 +4,7 @@
 {% from "shared/_ui.html" import brand %}
 <main class="login-wrap">
   <div class="card login-card">
-    {{ brand(ls.home, ls.title) }}
+    {{ brand(ls.home, ls.title, large=True) }}
     {% if step == 'code' %}
     <h1>Check your email</h1>
     {% if notice %}<p class="muted" role="status">{{ notice }}</p>{% endif %}

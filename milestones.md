@@ -136,7 +136,7 @@ The colors and sizes are defined once as CSS custom properties in `app/admin/sta
 7. When the call ends (`end_call` → `/hangup`, or the caller hangs up and the WebSocket closes), mark the conversation finished, generate a summary (one text-LLM call over the transcript), and update the customer record.
 
 ## Build milestones
-Status as of 2026-11-10 (end of session 1): **v12 is live on Azure** (revision `vanakkamiq--0000009`, migrations 0001–0004 applied). 128 tests pass inside the Azure image build (PyPI is blocked on the dev network, so tests only run there). Real calls, orders, emailed sign-in and the three public addresses are verified live. Code since commit `b06429a` is deployed but **not yet committed to git**.
+Status as of 2026-11-10 (end of session 1): **v12 is live on Azure** (revision `vanakkamiq--0000009`, migrations 0001–0004 applied). 128 tests pass inside the Azure image build (PyPI is blocked on the dev network, so tests only run there). Real calls, orders, emailed sign-in and the three public addresses are verified live. All code is committed and pushed (commit `4598a99`).
 
 0. ✅ **Plan saved** as `milestones.md` (this file).
 1. 🟡 **Scaffold** (written): pip/venv project (`pyproject.toml`), config, SQLAlchemy models, Alembic, seed script with a demo restaurant, menu and FAQs. SQLite locally and in tests, PostgreSQL on Azure. No docker-compose needed.
@@ -173,7 +173,7 @@ All on managed certificates; DNS in the `nativemindsai.com` zone (`rg-nativemind
    - Transfers: Outbound Voice Profile attached in Telnyx 2026-11-10. Set a **Staff transfer number** (owner Settings), call in open hours, say "can I talk to a person". Also try the **Transfer callers to staff** switch off: the AI should promise a call back and it should appear under **Return calls**.
    - AI call summaries (7a): after a call, the call list should show a one- or two-sentence summary.
    - Team page: add a staff login and sign in with it.
-2. **Commit and push** everything since `b06429a` (not in git yet).
+2. ~~Commit and push~~ done (`4598a99`).
 3. **6b: switch on routing for several businesses** before adding a second business: create the Telnyx Voice API app pointing at `/voice/telnyx/webhook`, put the Telnyx public key in `infra/secrets.local.json` as `telnyxPublicKey`, move one number, test, then the rest (`docs/telnyx-openai-sip.md`). The platform admin's business page shows how each call was routed.
 4. Website follow-ups (optional): more example calls (a shop, after hours); privacy and terms pages; convert the call audio to a compressed format.
 

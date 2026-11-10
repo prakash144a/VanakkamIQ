@@ -20,6 +20,7 @@ Copy `infra/secrets.example.json` to `infra/secrets.local.json` (git-ignored) an
 - `secretKey`: a long random string (e.g. `python -c "import secrets; print(secrets.token_urlsafe(48))"`).
 - `openaiApiKey`, `openaiProjectId`: from your OpenAI project. You can leave `openaiWebhookSecret` empty on the first deploy; you create the webhook once the app's URL exists (step 5).
 - `telnyxApiKey`: optional (SMS).
+- `acsConnectionString`: Azure Communication Services email (`endpoint=https://...;accesskey=...`). **Required**: sign-in codes are emailed, and nobody can sign in without it. The sender (`acsSender`) defaults to `DoNotReply@nativemindsai.com`, the same verified sender EverMindIQ uses.
 
 ## 2. Base resources (once)
 

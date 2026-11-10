@@ -1,10 +1,13 @@
+"""Orders: the cart during a call, confirmation, and the status flow staff move orders through."""
+
+import secrets
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.tools import ToolContext
-from app.db.models import Customer, MenuItem, Modifier, Order, OrderItem
+from app.db.models import CatalogItem, Customer, Modifier, Order, OrderItem
 from app.money import format_money
 
 
@@ -33,7 +36,7 @@ def recalc(order: Order, tax_rate_bps: int) -> None:
     order.total_cents = order.subtotal_cents + order.tax_cents
 
 
-def add_line(order: Order, item: MenuItem, quantity: int, modifiers: list[Modifier], instructions: str | None) -> OrderItem:
+def add_line(order: Order, item: CatalogItem, quantity: int, modifiers: list[Modifier], instructions: str | None) -> OrderItem:
     unit = item.price_cents + sum(m.price_delta_cents for m in modifiers)
     line = OrderItem(
         menu_item_id=item.id, name=item.name, quantity=quantity, unit_price_cents=unit,
@@ -87,7 +90,8 @@ async def confirm(
     order.notes = notes or None
     order.number = await next_order_number(db, order.business_id)
     order.status = "confirmed"
-    order.confirmed_at = datetime.now(timezone.utc)
+    order.confirmed_at = order.status_updated_at = datetime.now(timezone.utc)
+    order.public_token = secrets.token_urlsafe(16)
 
     if order.customer_phone:
         customer = await db.scalar(
@@ -103,3 +107,30 @@ async def confirm(
         await db.flush()
         order.customer_id = customer.id
     return order
+
+
+# --- status flow (orders board) -----------------------------------------------------------
+# confirmed ("New") -> in_progress -> ready -> completed; cancelled from any open state.
+NEXT_STATUS = {"confirmed": "in_progress", "in_progress": "ready", "ready": "completed"}
+OPEN_STATUSES = ("confirmed", "in_progress", "ready")
+STAFF_STATUSES = {*OPEN_STATUSES, "completed", "cancelled"}
+
+
+class StatusChangeError(ValueError):
+    pass
+
+
+def change_status(order: Order, new_status: str) -> str:
+    """Move an order to a new status; returns the previous one. Raises StatusChangeError."""
+    if new_status not in STAFF_STATUSES:
+        raise StatusChangeError(f"Unknown status {new_status!r}.")
+    if order.status == "draft":
+        raise StatusChangeError("This order was never confirmed.")
+    if order.status in ("completed", "cancelled") and new_status != order.status:
+        # Allow undoing a mistaken tap back to an open state.
+        if new_status not in OPEN_STATUSES:
+            raise StatusChangeError("This order is already closed.")
+    previous = order.status
+    order.status = new_status
+    order.status_updated_at = datetime.now(timezone.utc)
+    return previous

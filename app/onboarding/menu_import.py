@@ -1,4 +1,4 @@
-"""Parse a menu pasted as plain text.
+"""Parse a catalog (menu, products, services) pasted as plain text, and write it back out.
 
 Format (one item per line):
 
@@ -31,7 +31,7 @@ class ParsedGroup:
     name: str
     min_select: int
     max_select: int
-    options: list[tuple[str, int]]  # (name, price delta in cents)
+    options: list[tuple[str, int, bool]]  # (name, price delta in cents, available)
 
 
 @dataclass
@@ -41,6 +41,9 @@ class ParsedItem:
     tags: list[str] = field(default_factory=list)
     aliases: list[str] = field(default_factory=list)
     groups: list[ParsedGroup] = field(default_factory=list)
+    description: str | None = None
+    available: bool = True
+    external_id: str | None = None
 
 
 @dataclass
@@ -63,14 +66,14 @@ def _parse_group(field_text: str, line_no: int, errors: list[str]) -> ParsedGrou
     if not m or not body.strip():
         errors.append(f"Line {line_no}: couldn't read the option group \"{field_text}\".")
         return None
-    options: list[tuple[str, int]] = []
+    options: list[tuple[str, int, bool]] = []
     for raw in body.split(","):
         raw = raw.strip()
         if not raw:
             continue
         om = _OPTION.match(raw)
         price = parse_money(om.group("price")) if om and om.group("price") else 0
-        options.append((om.group("name").strip() if om else raw, price or 0))
+        options.append((om.group("name").strip() if om else raw, price or 0, True))
     if not options:
         errors.append(f"Line {line_no}: option group \"{head.strip()}\" has no options.")
         return None
@@ -149,3 +152,59 @@ def parse_faq_text(text: str) -> tuple[list[tuple[str, str]], list[str]]:
             continue
         faqs.append((question.strip(), answer.strip()))
     return faqs, errors
+
+
+def parse_option_groups(text: str) -> tuple[list[ParsedGroup], list[str]]:
+    """Option groups for one item, one per line: 'Spice level*: Mild, Medium, Hot'."""
+    groups: list[ParsedGroup] = []
+    errors: list[str] = []
+    for line_no, raw in enumerate(text.splitlines(), start=1):
+        line = raw.strip()
+        if not line:
+            continue
+        if ":" not in line:
+            errors.append(f"Options line {line_no}: expected \"Group: Option, Option +1.50\".")
+            continue
+        group = _parse_group(line, line_no, errors)
+        if group:
+            groups.append(group)
+    return groups, [e.replace("Line ", "Options line ") for e in errors]
+
+
+def _money_text(cents: int) -> str:
+    return f"{cents // 100}.{cents % 100:02d}"
+
+
+def group_to_text(group) -> str:
+    """One option group (a ModifierGroup) in the paste format."""
+    head = group.name + ("*" if group.min_select else "")
+    if group.max_select > 1:
+        head += f" (up to {group.max_select})"
+    options = ", ".join(
+        m.name + (f" +{_money_text(m.price_delta_cents)}" if m.price_delta_cents else "") for m in group.modifiers
+    )
+    return f"{head}: {options}"
+
+
+def item_to_line(item) -> str:
+    """One catalog item (a CatalogItem) in the paste format."""
+    fields = [item.name, _money_text(item.price_cents)]
+    if item.tags:
+        fields.append(", ".join(item.tags))
+    if item.aliases:
+        fields.append("aka: " + ", ".join(item.aliases))
+    fields += [group_to_text(g) for g in item.modifier_groups]
+    return " | ".join(fields)
+
+
+def catalog_to_text(categories: list, items: list) -> str:
+    """The whole catalog in the paste format, so it can be edited as text and pasted back."""
+    blocks = []
+    uncategorized = [i for i in items if i.category_id is None]
+    if uncategorized:
+        blocks.append("\n".join(item_to_line(i) for i in uncategorized))
+    for category in categories:
+        lines = [item_to_line(i) for i in items if i.category_id == category.id]
+        if lines:
+            blocks.append(f"# {category.name}\n" + "\n".join(lines))
+    return "\n\n".join(blocks)

@@ -1,0 +1,110 @@
+{% extends "platform/base.html" %}
+{% set section = 'businesses' %}
+{% block title %}Add business · VanakkamIQ Platform{% endblock %}
+{% block content %}
+{% import "shared/_fields.html" as f with context %}
+{% from "shared/_ui.html" import error_list %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/platform" class="small">← All businesses</a>
+    <h1>Add a business</h1>
+  </div>
+</div>
+
+{{ error_list(errors) }}
+
+<form method="post" action="/platform/businesses" class="stack" novalidate data-business-form>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>1. What kind of business?</h2></legend>
+      {{ f.business_type_fields() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>2. Business details</h2></legend>
+      {{ f.basics() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>3. Opening hours</h2></legend>
+      {{ f.hours() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>4. Phone numbers</h2></legend>
+      {{ f.text('phone_number', 'VanakkamIQ number', type='tel', required=True, placeholder='+1 555 555 0100', hint='The Telnyx number callers reach. The business can forward its existing line to it.') }}
+      {{ f.staff_phones() }}
+    </fieldset>
+  </section>
+
+  <section class="card" data-orders-only>
+    <fieldset>
+      <legend><h2>5. Orders</h2></legend>
+      {{ f.ordering() }}
+      <p class="hint">
+        One item per line: <code>Name | price | tags | aka: other names | Group*: Option, Option +1.50</code>.
+        <code># Section</code> starts a section. <code>*</code> means the caller must choose one;
+        <code>(up to 2)</code> allows several. You can also add items later from the owner's dashboard.
+      </p>
+      <div class="field">
+        <label for="catalog_text"><span data-catalog-word-cap>{{ get_type(v.get('business_type')).catalog }}</span> (optional)</label>
+        <textarea id="catalog_text" name="catalog_text" rows="12" placeholder="{{ get_type(v.get('business_type')).catalog_example }}" data-catalog-example>{{ v.get('catalog_text', '') }}</textarea>
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Saved answers</h2></legend>
+      <p class="hint">One per line: <code>Question? | Answer</code>. The AI only answers what's here (plus hours and address) and won't guess.</p>
+      <div class="field">
+        <label for="faq_text">Questions and answers</label>
+        <textarea id="faq_text" name="faq_text" rows="6" placeholder="{{ get_type(v.get('business_type')).faq_example }}" data-faq-example>{{ v.get('faq_text', '') }}</textarea>
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Voice and personality</h2></legend>
+      {{ f.voice() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Owner login</h2></legend>
+      <div class="grid-2">
+        {{ f.text('owner_name', 'Owner name') }}
+        {{ f.text('owner_email', 'Owner email', type='email', required=True, attrs='autocomplete="off"', hint='They sign in at /app/login with a code emailed to this address. No password.') }}
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Privacy</h2></legend>
+      {{ f.privacy() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <label class="check"><input type="checkbox" name="is_active" {{ f.checked('is_active') }}> Start answering calls right away</label>
+      <div class="row">
+        <a class="btn" href="/platform">Cancel</a>
+        <button class="btn btn-primary" type="submit">Create business</button>
+      </div>
+    </div>
+  </section>
+</form>
+<script type="application/json" id="business-types">{{ TYPES_JSON|safe }}</script>
+{% endblock %}

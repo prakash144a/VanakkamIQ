@@ -1,0 +1,56 @@
+{% extends "platform/base.html" %}
+{% set section = 'businesses' %}
+{% block title %}Businesses · VanakkamIQ Platform{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <p class="muted">{{ rows|length }} business{{ '' if rows|length == 1 else 'es' }}</p>
+    <h1>Businesses</h1>
+  </div>
+  <a class="btn btn-primary" href="/platform/businesses/new">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Add business
+  </a>
+</div>
+
+<section class="card" aria-label="All businesses">
+  {% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th scope="col">Business</th><th scope="col">Type</th><th scope="col">Phone number</th><th scope="col">What the AI does</th><th scope="col">Status</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>
+            <a href="/platform/businesses/{{ row.business.id }}"><strong>{{ row.business.name }}</strong></a>
+            <div class="muted small">{{ row.business.address or 'No address' }}</div>
+          </td>
+          <td>{{ row.type.label }}</td>
+          <td>{{ row.numbers|join(', ') or '—' }}</td>
+          <td>
+            {% if row.business.takes_orders %}Orders ({{ row.items }} item{{ '' if row.items == 1 else 's' }}) + questions{% else %}Questions & messages{% endif %}
+            <div class="muted small">{{ row.faqs }} saved answer{{ '' if row.faqs == 1 else 's' }}</div>
+          </td>
+          <td>
+            {% if row.business.is_active %}
+              <span class="chip chip-success"><span class="dot"></span>Answering calls</span>
+            {% else %}
+              <span class="chip">Paused</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="stack" style="align-items:flex-start">
+    <h2>No businesses yet</h2>
+    <p class="muted">Add the first business to give it a VanakkamIQ phone number and an owner login.</p>
+    <a class="btn btn-primary" href="/platform/businesses/new">Add business</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

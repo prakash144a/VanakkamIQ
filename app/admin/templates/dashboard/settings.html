@@ -1,0 +1,66 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Settings · {{ b.name }}{% endblock %}
+{% block content %}
+{% import "shared/_fields.html" as f with context %}
+{% from "shared/_ui.html" import error_list %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Settings</h1>
+    <p class="muted">Changes apply from the next call.</p>
+  </div>
+</div>
+
+{% if saved %}<div class="alert alert-success" role="status">Saved.</div>{% endif %}
+{{ error_list(errors) }}
+
+<form method="post" action="/app/settings" class="stack" novalidate>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Your business</h2></legend>
+      {{ f.basics() }}
+      <p class="muted small">VanakkamIQ number: <strong>{{ number or 'not set' }}</strong> · {{ btype.label }} · {{ 'Takes phone orders' if b.takes_orders else 'Answers questions and takes messages' }}. Contact VanakkamIQ to change these.</p>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Opening hours</h2></legend>
+      {{ f.hours() }}
+    </fieldset>
+  </section>
+
+  {% if b.takes_orders %}
+  <section class="card">
+    <fieldset>
+      <legend><h2>Orders</h2></legend>
+      {{ f.ordering() }}
+    </fieldset>
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Your team's phones</h2></legend>
+      {{ f.staff_phones() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Voice and personality</h2></legend>
+      {{ f.voice() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Privacy</h2></legend>
+      {{ f.privacy() }}
+    </fieldset>
+  </section>
+
+  <div class="row"><button class="btn btn-primary" type="submit">Save settings</button></div>
+</form>
+{% endblock %}

@@ -1,60 +1,24 @@
-"""Menu lookup tuned for speech: callers say "chicken biriyani" or "the dosa", not exact names."""
-
-import re
-from difflib import SequenceMatcher
+"""The orderable list (menu, products, services): lookup, options and the prompt summary."""
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Faq, MenuCategory, MenuItem, Modifier
+from app.agent.matching import text_score
+from app.db.models import CatalogCategory, CatalogItem, Modifier
 from app.money import format_money
 
 
-# Filler words callers say around dish names ("can I get the dosa please").
-STOPWORDS = {
-    "a", "an", "the", "some", "please", "of", "and", "with", "can", "could", "get", "have", "want",
-    "like", "order", "one", "two", "three", "four", "five", "my", "your", "i", "id", "me",
-}
-
-
-def _norm(text: str) -> str:
-    words = re.sub(r"[^a-z0-9 ]+", " ", text.lower()).split()
-    kept = [w for w in words if w not in STOPWORDS]
-    return " ".join(kept or words)
-
-
-def _tokens(text: str) -> set[str]:
-    return {t for t in _norm(text).split() if len(t) > 1}
-
-
-def text_score(query: str, candidate: str) -> float:
-    q, c = _norm(query), _norm(candidate)
-    if not q or not c:
-        return 0.0
-    if q == c:
-        return 1.0
-    ratio = SequenceMatcher(None, q, c).ratio()
-    q_tokens, c_tokens = _tokens(q), _tokens(c)
-    overlap = len(q_tokens & c_tokens) / len(q_tokens) if q_tokens else 0.0
-    # fuzzy token overlap handles "biriyani" vs "biryani"
-    fuzzy = 0.0
-    if q_tokens and c_tokens:
-        fuzzy = sum(max(SequenceMatcher(None, qt, ct).ratio() for ct in c_tokens) for qt in q_tokens) / len(q_tokens)
-    contains = 0.9 if (q in c or c in q) else 0.0
-    return max(ratio, overlap, fuzzy * 0.95, contains)
-
-
-async def load_menu(db: AsyncSession, business_id: int) -> list[MenuItem]:
+async def load_catalog(db: AsyncSession, business_id: int) -> list[CatalogItem]:
     rows = await db.scalars(
-        select(MenuItem)
-        .outerjoin(MenuCategory, MenuItem.category_id == MenuCategory.id)
-        .where(MenuItem.business_id == business_id)
-        .order_by(MenuCategory.sort_order, MenuItem.sort_order, MenuItem.id)
+        select(CatalogItem)
+        .outerjoin(CatalogCategory, CatalogItem.category_id == CatalogCategory.id)
+        .where(CatalogItem.business_id == business_id)
+        .order_by(CatalogCategory.sort_order, CatalogItem.sort_order, CatalogItem.id)
     )
     return list(rows)
 
 
-def search_items(items: list[MenuItem], query: str, limit: int = 5, min_score: float = 0.6) -> list[tuple[MenuItem, float]]:
+def search_items(items: list[CatalogItem], query: str, limit: int = 5, min_score: float = 0.6) -> list[tuple[CatalogItem, float]]:
     scored = []
     for item in items:
         names = [item.name, *(item.aliases or [])]
@@ -67,7 +31,7 @@ def search_items(items: list[MenuItem], query: str, limit: int = 5, min_score: f
     return scored[:limit]
 
 
-def options_view(item: MenuItem, currency: str) -> list[dict]:
+def options_view(item: CatalogItem, currency: str) -> list[dict]:
     view = []
     for group in item.modifier_groups:
         view.append({
@@ -82,7 +46,7 @@ def options_view(item: MenuItem, currency: str) -> list[dict]:
     return view
 
 
-def item_view(item: MenuItem, currency: str) -> dict:
+def item_view(item: CatalogItem, currency: str) -> dict:
     view = {
         "item_id": item.id,
         "name": item.name,
@@ -99,7 +63,7 @@ def item_view(item: MenuItem, currency: str) -> dict:
     return view
 
 
-def resolve_modifiers(item: MenuItem, requested: list[str]) -> tuple[list[Modifier], list[str]]:
+def resolve_modifiers(item: CatalogItem, requested: list[str]) -> tuple[list[Modifier], list[str]]:
     """Match the caller's spoken options to real modifiers. Returns (chosen, problems)."""
     chosen: list[Modifier] = []
     problems: list[str] = []
@@ -127,7 +91,7 @@ def resolve_modifiers(item: MenuItem, requested: list[str]) -> tuple[list[Modifi
     return chosen, problems
 
 
-def menu_prompt_text(items: list[MenuItem], currency: str) -> str:
+def catalog_prompt_text(items: list[CatalogItem], currency: str) -> str:
     lines: list[str] = []
     current = object()
     for item in items:
@@ -135,7 +99,7 @@ def menu_prompt_text(items: list[MenuItem], currency: str) -> str:
         if category != current:
             lines.append(f"\n{category}:")
             current = category
-        status = "" if item.is_available else " (SOLD OUT today)"
+        status = "" if item.is_available else " (UNAVAILABLE today)"
         tags = f" [{', '.join(item.tags)}]" if item.tags else ""
         lines.append(f"- {item.name}: {format_money(item.price_cents, currency)}{tags}{status}")
         for group in item.modifier_groups:
@@ -146,10 +110,3 @@ def menu_prompt_text(items: list[MenuItem], currency: str) -> str:
             need = "required" if group.min_select else "optional"
             lines.append(f"    {group.name} ({need}): {opts}")
     return "\n".join(lines).strip()
-
-
-def search_faqs(faqs: list[Faq], question: str, limit: int = 2, min_score: float = 0.5) -> list[Faq]:
-    scored = [(f, text_score(question, f.question)) for f in faqs]
-    scored = [pair for pair in scored if pair[1] >= min_score]
-    scored.sort(key=lambda pair: pair[1], reverse=True)
-    return [f for f, _ in scored[:limit]]

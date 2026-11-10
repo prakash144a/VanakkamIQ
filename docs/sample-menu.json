@@ -1,0 +1,911 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "name": "Starters",
+      "items": [
+        {
+          "id": "STA-001",
+          "name": "Medu Vada (2 pcs)",
+          "price": 6.99,
+          "aliases": [
+            "vada",
+            "medhu vada",
+            "urad vada"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Dip",
+              "min": 0,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Sambar"
+                },
+                {
+                  "name": "Coconut Chutney"
+                },
+                {
+                  "name": "Both"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "STA-002",
+          "name": "Vegetable Samosa (2 pcs)",
+          "price": 5.99,
+          "aliases": [
+            "samosa",
+            "samosas"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "STA-003",
+          "name": "Gobi 65",
+          "price": 10.99,
+          "aliases": [
+            "cauliflower 65",
+            "gobi sixty five"
+          ],
+          "tags": [
+            "vegetarian",
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "STA-004",
+          "name": "Chicken 65",
+          "price": 12.99,
+          "aliases": [
+            "chicken sixty five"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "STA-005",
+          "name": "Chilli Paneer",
+          "price": 12.49,
+          "aliases": [
+            "paneer chilli"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Style",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Dry"
+                },
+                {
+                  "name": "Gravy"
+                }
+              ]
+            },
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dosa",
+      "items": [
+        {
+          "id": "DOS-006",
+          "name": "Plain Dosa",
+          "price": 9.99,
+          "aliases": [
+            "sada dosa",
+            "plain dosai"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Add-ons",
+              "min": 0,
+              "max": 2,
+              "choices": [
+                {
+                  "name": "Ghee roast",
+                  "price": 1.5
+                },
+                {
+                  "name": "Extra chutney",
+                  "price": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DOS-007",
+          "name": "Masala Dosa",
+          "price": 11.99,
+          "aliases": [
+            "masala dosai"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Add-ons",
+              "min": 0,
+              "max": 2,
+              "choices": [
+                {
+                  "name": "Ghee roast",
+                  "price": 1.5
+                },
+                {
+                  "name": "Cheese",
+                  "price": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DOS-008",
+          "name": "Mysore Masala Dosa",
+          "price": 12.99,
+          "aliases": [
+            "mysore dosa"
+          ],
+          "tags": [
+            "vegetarian",
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DOS-009",
+          "name": "Onion Rava Dosa",
+          "price": 12.49,
+          "aliases": [
+            "rava dosa",
+            "onion rava",
+            "rava dosai"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "DOS-010",
+          "name": "Paneer Dosa",
+          "price": 13.49,
+          "aliases": [
+            "paneer dosai"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Idli & Uttapam",
+      "items": [
+        {
+          "id": "IDL-011",
+          "name": "Idli (3 pcs)",
+          "price": 7.99,
+          "aliases": [
+            "idly",
+            "idlis"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Served with",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Sambar & Chutney"
+                },
+                {
+                  "name": "Sambar only"
+                },
+                {
+                  "name": "Chutney only"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "IDL-012",
+          "name": "Ghee Podi Idli",
+          "price": 9.49,
+          "aliases": [
+            "podi idli",
+            "gun powder idli"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "IDL-013",
+          "name": "Onion Uttapam",
+          "price": 11.49,
+          "aliases": [
+            "onion uthappam",
+            "uttapam"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "IDL-014",
+          "name": "Mixed Vegetable Uttapam",
+          "price": 11.99,
+          "aliases": [
+            "veg uttapam",
+            "vegetable uthappam"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Biryani",
+      "items": [
+        {
+          "id": "BIR-015",
+          "name": "Chicken Biryani",
+          "price": 15.99,
+          "aliases": [
+            "chicken biriyani",
+            "chicken dum biryani"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            },
+            {
+              "name": "Add-ons",
+              "min": 0,
+              "max": 2,
+              "choices": [
+                {
+                  "name": "Extra raita",
+                  "price": 1.5
+                },
+                {
+                  "name": "Boiled egg",
+                  "price": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "BIR-016",
+          "name": "Goat Biryani",
+          "price": 18.99,
+          "aliases": [
+            "mutton biryani",
+            "goat biriyani"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            },
+            {
+              "name": "Add-ons",
+              "min": 0,
+              "max": 2,
+              "choices": [
+                {
+                  "name": "Extra raita",
+                  "price": 1.5
+                },
+                {
+                  "name": "Boiled egg",
+                  "price": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "BIR-017",
+          "name": "Egg Biryani",
+          "price": 13.99,
+          "aliases": [
+            "muttai biryani",
+            "egg biriyani"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "BIR-018",
+          "name": "Vegetable Biryani",
+          "price": 13.99,
+          "aliases": [
+            "veg biryani",
+            "veg biriyani"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            },
+            {
+              "name": "Add-ons",
+              "min": 0,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Extra raita",
+                  "price": 1.5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Curries",
+      "items": [
+        {
+          "id": "CUR-019",
+          "name": "Chettinad Chicken",
+          "price": 16.99,
+          "aliases": [
+            "chicken chettinad"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                },
+                {
+                  "name": "Extra hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CUR-020",
+          "name": "Goat Pepper Fry",
+          "price": 18.49,
+          "aliases": [
+            "mutton pepper fry",
+            "mutton chukka"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                },
+                {
+                  "name": "Extra hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CUR-021",
+          "name": "Fish Curry",
+          "price": 17.49,
+          "aliases": [
+            "meen kuzhambu",
+            "fish kulambu"
+          ],
+          "tags": [
+            "spicy"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CUR-022",
+          "name": "Paneer Butter Masala",
+          "price": 14.99,
+          "aliases": [
+            "paneer makhani",
+            "butter paneer"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CUR-023",
+          "name": "Chana Masala",
+          "price": 12.99,
+          "aliases": [
+            "chole",
+            "chickpea curry"
+          ],
+          "tags": [
+            "vegetarian",
+            "vegan"
+          ],
+          "options": [
+            {
+              "name": "Spice level",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Mild"
+                },
+                {
+                  "name": "Medium"
+                },
+                {
+                  "name": "Hot"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CUR-024",
+          "name": "Vegetable Kurma",
+          "price": 12.99,
+          "aliases": [
+            "veg korma",
+            "veg kurma"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Breads & Rice",
+      "items": [
+        {
+          "id": "BRE-025",
+          "name": "Parotta (2 pcs)",
+          "price": 5.99,
+          "aliases": [
+            "paratha",
+            "porotta",
+            "kerala parotta"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "BRE-026",
+          "name": "Butter Naan",
+          "price": 3.49,
+          "aliases": [
+            "naan"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "BRE-027",
+          "name": "Garlic Naan",
+          "price": 3.99,
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "BRE-028",
+          "name": "Lemon Rice",
+          "price": 8.99,
+          "aliases": [
+            "chitranna"
+          ],
+          "tags": [
+            "vegetarian",
+            "vegan"
+          ]
+        },
+        {
+          "id": "BRE-029",
+          "name": "Curd Rice",
+          "price": 8.49,
+          "aliases": [
+            "thayir sadam",
+            "yogurt rice"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "BRE-030",
+          "name": "Steamed Basmati Rice",
+          "price": 3.99,
+          "aliases": [
+            "plain rice",
+            "white rice"
+          ],
+          "tags": [
+            "vegetarian",
+            "vegan"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Desserts",
+      "items": [
+        {
+          "id": "DES-031",
+          "name": "Gulab Jamun (2 pcs)",
+          "price": 5.49,
+          "aliases": [
+            "gulab jamoon"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "DES-032",
+          "name": "Rava Kesari",
+          "price": 5.49,
+          "aliases": [
+            "kesari",
+            "kesari bath"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "DES-033",
+          "name": "Payasam",
+          "price": 5.99,
+          "aliases": [
+            "kheer",
+            "semiya payasam"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Drinks",
+      "items": [
+        {
+          "id": "DRI-034",
+          "name": "Filter Coffee",
+          "price": 3.49,
+          "aliases": [
+            "madras coffee",
+            "south indian coffee"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Sugar",
+              "min": 0,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Regular"
+                },
+                {
+                  "name": "Less sugar"
+                },
+                {
+                  "name": "No sugar"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DRI-035",
+          "name": "Masala Chai",
+          "price": 3.29,
+          "aliases": [
+            "chai",
+            "tea"
+          ],
+          "tags": [
+            "vegetarian"
+          ],
+          "options": [
+            {
+              "name": "Sugar",
+              "min": 0,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Regular"
+                },
+                {
+                  "name": "Less sugar"
+                },
+                {
+                  "name": "No sugar"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "DRI-036",
+          "name": "Mango Lassi",
+          "price": 4.99,
+          "aliases": [
+            "lassi"
+          ],
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "DRI-037",
+          "name": "Sweet Lassi",
+          "price": 4.49,
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "DRI-038",
+          "name": "Rose Milk",
+          "price": 4.49,
+          "tags": [
+            "vegetarian"
+          ]
+        },
+        {
+          "id": "DRI-039",
+          "name": "Soft Drink",
+          "price": 2.49,
+          "aliases": [
+            "soda",
+            "coke"
+          ],
+          "tags": [
+            "vegan"
+          ],
+          "options": [
+            {
+              "name": "Flavor",
+              "min": 1,
+              "max": 1,
+              "choices": [
+                {
+                  "name": "Coke"
+                },
+                {
+                  "name": "Diet Coke"
+                },
+                {
+                  "name": "Sprite"
+                },
+                {
+                  "name": "Ginger Ale"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

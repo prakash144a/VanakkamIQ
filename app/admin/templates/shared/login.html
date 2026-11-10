@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block title %}Sign in · VanakkamIQ{% endblock %}
+{% block body %}
+{% from "shared/_ui.html" import brand %}
+<main class="login-wrap">
+  <div class="card login-card">
+    {{ brand(ls.home, ls.title) }}
+    {% if step == 'code' %}
+    <h1>Check your email</h1>
+    {% if notice %}<p class="muted" role="status">{{ notice }}</p>{% endif %}
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ ls.action }}/verify" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="email" value="{{ email }}">
+      <div class="field">
+        <label for="code">{{ code_length }}-digit code</label>
+        <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9 ]*" maxlength="{{ code_length + 4 }}" required autofocus class="code-input">
+        <span class="hint">The code expires in {{ ttl_minutes }} minutes. Check your spam folder if it isn't there.</span>
+      </div>
+      <button class="btn btn-primary" type="submit">Sign in</button>
+    </form>
+    <div class="row" style="justify-content:space-between">
+      <form method="post" action="{{ ls.action }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="email" value="{{ email }}">
+        <button class="btn-link btn" type="submit">Send a new code</button>
+      </form>
+      <a class="small" href="{{ ls.action }}">Use a different email</a>
+    </div>
+    {% else %}
+    <h1>Sign in</h1>
+    <p class="muted">We'll email you a one-time code. No password needed.</p>
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ ls.action }}" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required autofocus value="{{ email }}">
+      </div>
+      <button class="btn btn-primary" type="submit">Email me a code</button>
+    </form>
+    {% endif %}
+    {% if dev_hint %}<p class="muted small">Local development: email isn't configured, so the code is printed in the server log.</p>{% endif %}
+    {% if ls.other_link %}<p class="muted small">{{ ls.other_link[0] }} <a href="{{ ls.other_link[1] }}">Sign in here</a>.</p>{% endif %}
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,140 @@
+{# Business settings fields shared by "Add business", platform "Edit business" and the owner's Settings.
+   Import with context: needs v (form values) and the choice lists from form_options(). #}
+
+{% macro checked(key) %}{% if v.get(key) %}checked{% endif %}{% endmacro %}
+
+{% macro text(name, label, hint='', type='text', placeholder='', required=False, attrs='') -%}
+<div class="field">
+  <label for="{{ name }}">{{ label }}</label>
+  <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ v.get(name, '') }}" {% if placeholder %}placeholder="{{ placeholder }}"{% endif %} {% if required %}required{% endif %} {{ attrs|safe }}>
+  {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro business_type_fields() -%}
+<div class="field">
+  <span class="label" id="type-label">Business type</span>
+  <div class="type-grid" role="radiogroup" aria-labelledby="type-label">
+    {% for t in types %}
+    <label class="type-option">
+      <input type="radio" name="business_type" value="{{ t.key }}" {% if v.get('business_type') == t.key %}checked{% endif %} data-type-radio>
+      <span><strong>{{ t.label }}</strong><span class="muted small">{{ t.hint }}</span></span>
+    </label>
+    {% endfor %}
+  </div>
+  <span class="hint">Changes the AI's wording ("menu" or "products", "kitchen" or "shop") and defaults. What it can do is set below.</span>
+</div>
+<label class="check check-block">
+  <input type="checkbox" name="takes_orders" {{ checked('takes_orders') }} data-orders-toggle>
+  <span><strong>Takes phone orders</strong><br><span class="muted small">The AI takes orders from a <span data-catalog-word>{{ get_type(v.get('business_type')).catalog|lower }}</span>, and staff get an orders board. Without it, the AI answers questions and takes messages.</span></span>
+</label>
+{%- endmacro %}
+
+{% macro basics(name_label='Business name') -%}
+<div class="grid-2">
+  {{ text('name', name_label, required=True) }}
+  {{ text('address', 'Address', hint='The AI tells callers where to find you.') }}
+  <div class="field">
+    <label for="timezone">Timezone</label>
+    <select id="timezone" name="timezone">
+      <optgroup label="Common">
+        {% for tz, label in timezones.common %}
+        <option value="{{ tz }}" {% if v.get('timezone') == tz %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="All time zones">
+        {% for tz, label in timezones.all %}
+        <option value="{{ tz }}" {% if v.get('timezone') == tz and tz not in timezones.common|map('first') %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </optgroup>
+    </select>
+    <span class="hint">Hours, closures, order times and call times all use this timezone.</span>
+  </div>
+</div>
+<div class="field">
+  <label for="description">What the business does (optional)</label>
+  <textarea id="description" name="description" class="prose" rows="3" placeholder="Family-run South Indian restaurant since 2009. Known for dosas and Chettinad curries.">{{ v.get('description', '') }}</textarea>
+  <span class="hint">A few sentences in your own words. The AI uses this to describe you to callers.</span>
+</div>
+{%- endmacro %}
+
+{% macro hours() -%}
+<p class="hint">Closing after midnight is fine (e.g. 18:00 to 02:00). Orders are only taken during these hours; questions are answered any time.</p>
+<div class="hours">
+  {% for day in DAYS %}
+  <div class="hours-row">
+    <span class="day label">{{ DAY_NAMES[day] }}</span>
+    <input id="open_{{ day }}" name="open_{{ day }}" type="time" value="{{ v.get('open_' ~ day, '') }}" aria-label="{{ DAY_NAMES[day] }} opens">
+    <input id="close_{{ day }}" name="close_{{ day }}" type="time" value="{{ v.get('close_' ~ day, '') }}" aria-label="{{ DAY_NAMES[day] }} closes">
+    <label class="check"><input type="checkbox" name="closed_{{ day }}" {{ checked('closed_' ~ day) }}> Closed</label>
+  </div>
+  {% endfor %}
+</div>
+<div class="field">
+  <label for="closures_text">Holidays and other closed days</label>
+  <textarea id="closures_text" name="closures_text" rows="3" placeholder="2026-12-25 Christmas Day&#10;2027-01-01 New Year's Day">{{ v.get('closures_text', '') }}</textarea>
+  <span class="hint">One per line: the date, then an optional note. Closed all day; past dates are removed when you save.</span>
+</div>
+{%- endmacro %}
+
+{% macro ordering() -%}
+<div class="row">
+  <span class="label">Customers can choose:</span>
+  <label class="check"><input type="checkbox" name="offers_pickup" {{ checked('offers_pickup') }}> Pickup</label>
+  <label class="check"><input type="checkbox" name="offers_delivery" {{ checked('offers_delivery') }}> Delivery</label>
+</div>
+<div class="grid-2">
+  {{ text('tax_rate', 'Sales tax (%)', placeholder='8.875', attrs='inputmode="decimal"') }}
+  {{ text('large_order', 'Large-order amount ($)', hint='Above this, the AI offers to bring in a team member. Leave blank for no limit.', placeholder='250', attrs='inputmode="decimal"') }}
+</div>
+{%- endmacro %}
+
+{% macro staff_phones() -%}
+<div class="grid-2">
+  {{ text('handoff_phone', 'Staff transfer number', type='tel', hint='Where the AI transfers callers who need a person (during open hours). Without it, callers leave a message.') }}
+  {{ text('notify_phone', 'Staff alert number (text messages)', type='tel', hint='Gets a text for each new order, transfer and message.') }}
+</div>
+{%- endmacro %}
+
+{% macro voice() -%}
+<div class="grid-2">
+  <div class="field">
+    <label for="voice">AI voice</label>
+    <select id="voice" name="voice">
+      {% for voice in voices %}
+      <option value="{{ voice }}" {% if v.get('voice') == voice %}selected{% endif %}>{{ voice|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="language">Main language</label>
+    <select id="language" name="language">
+      {% for code, label in languages %}
+      <option value="{{ code }}" {% if v.get('language') == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <span class="hint">The AI also replies in the caller's language if they switch.</span>
+  </div>
+</div>
+<div class="field">
+  <label for="greeting">Greeting (optional)</label>
+  <input id="greeting" name="greeting" type="text" maxlength="300" value="{{ v.get('greeting', '') }}" placeholder="Vanakkam! Thanks for calling. How can I help you today?">
+  <span class="hint">How the AI opens each call. Returning callers are still greeted by name.</span>
+</div>
+<div class="field">
+  <label for="persona">Personality notes (optional)</label>
+  <textarea id="persona" name="persona" class="prose" rows="3" placeholder="Warm and welcoming, like family. Mention our Friday dosa special.">{{ v.get('persona', '') }}</textarea>
+</div>
+{%- endmacro %}
+
+{% macro privacy() -%}
+<div class="field" style="max-width:320px">
+  <label for="retention_days">Keep call transcripts for</label>
+  <select id="retention_days" name="retention_days">
+    {% for value, label in retention_choices %}
+    <option value="{{ value }}" {% if v.get('retention_days', '') == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <span class="hint">After this, what was said is deleted. Orders, messages and the call list are kept.</span>
+</div>
+{%- endmacro %}

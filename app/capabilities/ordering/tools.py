@@ -1,25 +1,23 @@
-"""Tools the AI uses during a restaurant call."""
+"""Ordering tools: find items, build the order, read it back, confirm it."""
 
-from sqlalchemy import select
-
-from app.agent.tools import Tool, ToolContext, ToolRegistry, schema
+from app.agent.tools import Tool, ToolContext, schema
 from app.business_hours import is_open
-from app.db.models import Business, Faq, MenuItem
-from app.handoff import service as handoff
+from app.business_types import get_type
+from app.capabilities.ordering import orders
+from app.capabilities.ordering.catalog import item_view, load_catalog, resolve_modifiers, search_items
+from app.db.models import Business, CatalogItem
 from app.money import format_money
-from app.verticals.restaurant import order_service as orders
-from app.verticals.restaurant.menu_service import item_view, load_menu, resolve_modifiers, search_faqs, search_items
 
 MAX_QUANTITY = 50
 
 
-async def search_menu(ctx: ToolContext, args: dict) -> dict:
+async def search_catalog(ctx: ToolContext, args: dict) -> dict:
     async with ctx.session_factory() as db:
         business = await db.get(Business, ctx.business_id)
-        items = await load_menu(db, ctx.business_id)
+        items = await load_catalog(db, ctx.business_id)
     matches = search_items(items, args.get("query", ""))
     if not matches:
-        return {"ok": True, "matches": [], "note": "Nothing on the menu matches. Say so and suggest close alternatives."}
+        return {"ok": True, "matches": [], "note": "Nothing matches. Say so and suggest close alternatives."}
     return {"ok": True, "matches": [item_view(item, business.currency) for item, _ in matches]}
 
 
@@ -30,12 +28,12 @@ async def add_to_order(ctx: ToolContext, args: dict) -> dict:
     async with ctx.session_factory() as db:
         business = await db.get(Business, ctx.business_id)
         if not is_open(business):
-            return {"ok": False, "error": "The restaurant is closed, so orders can't be taken now. Share the opening hours."}
-        item = await db.get(MenuItem, int(args["item_id"]))
+            return {"ok": False, "error": "We're closed, so orders can't be taken now. Share the opening hours."}
+        item = await db.get(CatalogItem, int(args["item_id"]))
         if item is None or item.business_id != ctx.business_id:
-            return {"ok": False, "error": "Unknown item_id. Use search_menu first."}
+            return {"ok": False, "error": "Unknown item_id. Use search_catalog first."}
         if not item.is_available:
-            return {"ok": False, "error": f"{item.name} is sold out today. Suggest something similar."}
+            return {"ok": False, "error": f"{item.name} is unavailable today. Suggest something similar."}
         modifiers, problems = resolve_modifiers(item, args.get("options") or [])
         if problems:
             return {"ok": False, "needs": problems}
@@ -106,9 +104,9 @@ async def confirm_order(ctx: ToolContext, args: dict) -> dict:
     async with ctx.session_factory() as db:
         business = await db.get(Business, ctx.business_id)
         if fulfillment == "delivery" and not business.offers_delivery:
-            return {"ok": False, "error": "This restaurant doesn't deliver. Offer pickup instead."}
+            return {"ok": False, "error": "We don't deliver. Offer pickup instead."}
         if fulfillment == "pickup" and not business.offers_pickup:
-            return {"ok": False, "error": "This restaurant only does delivery. Ask for the delivery address."}
+            return {"ok": False, "error": "We only deliver. Ask for the delivery address."}
         order = await orders.current_order(db, ctx)
         if order is None or order.status != "draft" or not order.items:
             return {"ok": False, "error": "There is no open order to confirm."}
@@ -127,7 +125,7 @@ async def confirm_order(ctx: ToolContext, args: dict) -> dict:
         "type": "order.confirmed", "order_id": order.id, "number": order.number,
         "conversation_id": ctx.conversation_id, "total": view["total"],
     })
-    text_note = " and that a text confirmation is on its way" if order.customer_phone else ""
+    text_note = " and that a text with the order details and a status link is on its way" if order.customer_phone else ""
     return {
         "ok": True,
         "order_number": order.number,
@@ -136,38 +134,18 @@ async def confirm_order(ctx: ToolContext, args: dict) -> dict:
     }
 
 
-async def answer_faq(ctx: ToolContext, args: dict) -> dict:
-    async with ctx.session_factory() as db:
-        faqs = list(await db.scalars(select(Faq).where(Faq.business_id == ctx.business_id)))
-    found = search_faqs(faqs, args.get("question", ""))
-    if not found:
-        return {"ok": True, "answers": [], "note": "No saved answer. Don't guess: offer to connect them with a team member or take a message."}
-    return {"ok": True, "answers": [{"question": f.question, "answer": f.answer} for f in found]}
-
-
-async def transfer_to_human(ctx: ToolContext, args: dict) -> dict:
-    return await handoff.start_transfer(ctx, args.get("reason") or "Caller needs a team member")
-
-
-async def request_callback(ctx: ToolContext, args: dict) -> dict:
-    return await handoff.request_callback(ctx, args.get("name"), args.get("phone"), args.get("message") or "")
-
-
-async def end_call(ctx: ToolContext, args: dict) -> dict:
-    ctx.call.request_hangup()
-    return {"ok": True, "instruction": "Say a short, warm goodbye now. The call will end right after."}
-
-
-def build_registry() -> ToolRegistry:
-    return ToolRegistry([
-        Tool("search_menu", "Find menu items by what the caller said. Use before adding any item.",
-             schema({"query": {"type": "string", "description": "Dish name as the caller said it"}}, ["query"]),
-             search_menu),
-        Tool("add_to_order", "Add a menu item to the caller's order.",
+def ordering_tools(business: Business) -> list[Tool]:
+    noun = get_type(business.business_type).item
+    modes = [m for m, on in (("pickup", business.offers_pickup), ("delivery", business.offers_delivery)) if on] or ["pickup"]
+    return [
+        Tool("search_catalog", f"Find a {noun} by what the caller said. Use before adding anything to the order.",
+             schema({"query": {"type": "string", "description": f"The {noun} as the caller said it"}}, ["query"]),
+             search_catalog),
+        Tool("add_to_order", f"Add a {noun} to the caller's order.",
              schema({
-                 "item_id": {"type": "integer", "description": "item_id from search_menu"},
+                 "item_id": {"type": "integer", "description": "item_id from search_catalog"},
                  "quantity": {"type": "integer", "minimum": 1},
-                 "options": {"type": "array", "items": {"type": "string"}, "description": "Chosen option names, e.g. spice level"},
+                 "options": {"type": "array", "items": {"type": "string"}, "description": "Chosen option names"},
                  "special_instructions": {"type": "string"},
              }, ["item_id", "quantity"]),
              add_to_order),
@@ -184,23 +162,11 @@ def build_registry() -> ToolRegistry:
         Tool("confirm_order", "Place the order after reading it back and getting the caller's yes.",
              schema({
                  "customer_name": {"type": "string"},
-                 "fulfillment": {"type": "string", "enum": ["pickup", "delivery"]},
+                 "fulfillment": {"type": "string", "enum": modes},
                  "delivery_address": {"type": "string"},
                  "requested_time": {"type": "string", "description": "e.g. 'ASAP' or '7:15 PM'"},
                  "notes": {"type": "string"},
                  "caller_confirmed_readback": {"type": "boolean", "description": "True only after the caller said yes to the read-back"},
              }, ["customer_name", "fulfillment", "caller_confirmed_readback"]),
              confirm_order),
-        Tool("answer_faq", "Look up the restaurant's saved answer to a caller's question.",
-             schema({"question": {"type": "string"}}, ["question"]), answer_faq),
-        Tool("transfer_to_human", "Connect the caller with a team member (see the rules for when).",
-             schema({"reason": {"type": "string"}}, ["reason"]), transfer_to_human),
-        Tool("request_callback", "Leave a callback message for staff when nobody can take the call.",
-             schema({
-                 "name": {"type": "string"},
-                 "phone": {"type": "string", "description": "Only if different from the number they're calling from"},
-                 "message": {"type": "string"},
-             }, ["message"]),
-             request_callback),
-        Tool("end_call", "End the call after the caller is done and you've said goodbye.", schema({}), end_call),
-    ])
+    ]

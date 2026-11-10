@@ -11,10 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.models import (
-    Base, Business, Faq, MenuCategory, MenuItem, Modifier, ModifierGroup, PhoneNumber, StaffUser,
+    Base, Business, CatalogCategory, CatalogItem, Faq, Modifier, ModifierGroup, PhoneNumber, StaffUser,
 )
 from app.db.session import make_engine, make_session_factory
-from app.security import hash_password
 
 DEMO_SLUG = "demo-kitchen"
 EVERY_DAY = {d: [["11:00", "22:00"]] for d in ("mon", "tue", "wed", "thu", "fri", "sat", "sun")}
@@ -59,7 +58,7 @@ async def seed(db: AsyncSession) -> Business:
         return existing
 
     business = Business(
-        name="VanakkamIQ Demo Kitchen", slug=DEMO_SLUG, vertical="restaurant",
+        name="VanakkamIQ Demo Kitchen", slug=DEMO_SLUG, business_type="restaurant", takes_orders=True,
         timezone="America/New_York", address="123 Main Street", hours=EVERY_DAY,
         tax_rate_bps=800, large_order_cents=25000, offers_pickup=True, offers_delivery=True,
         handoff_phone=os.getenv("SEED_HANDOFF_PHONE") or None,
@@ -71,15 +70,14 @@ async def seed(db: AsyncSession) -> Business:
     db.add(PhoneNumber(business_id=business.id, e164=os.getenv("SEED_PHONE_NUMBER", "+15555550100")))
     db.add(StaffUser(
         business_id=business.id, email=os.getenv("SEED_ADMIN_EMAIL", "admin@example.com"), name="Owner",
-        password_hash=hash_password(os.getenv("SEED_ADMIN_PASSWORD", "change-me")),
     ))
 
     for c_index, (category_name, items) in enumerate(MENU.items()):
-        category = MenuCategory(business_id=business.id, name=category_name, sort_order=c_index)
+        category = CatalogCategory(business_id=business.id, name=category_name, sort_order=c_index)
         db.add(category)
         await db.flush()
         for i_index, (name, price, aliases, tags, spice) in enumerate(items):
-            item = MenuItem(
+            item = CatalogItem(
                 business_id=business.id, category_id=category.id, name=name, price_cents=price,
                 aliases=aliases, tags=tags, sort_order=i_index, modifier_groups=[],
             )

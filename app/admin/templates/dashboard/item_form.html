@@ -1,0 +1,79 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ 'Edit ' ~ item.name if item else 'Add ' ~ btype.item }} · {{ b.name }}{% endblock %}
+{% block content %}
+{% from "shared/_ui.html" import error_list %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/app/catalog" class="small">← {{ btype.catalog }}</a>
+    <h1>{{ 'Edit ' ~ item.name if item else 'Add ' ~ btype.item }}</h1>
+  </div>
+</div>
+
+{{ error_list(errors) }}
+
+<form method="post" action="{{ '/app/catalog/items/' ~ item.id if item else '/app/catalog/items' }}" class="stack" novalidate>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <section class="card">
+    <div class="grid-2">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" maxlength="160" required value="{{ v.get('name', '') }}">
+      </div>
+      <div class="field">
+        <label for="price">Price ($)</label>
+        <input id="price" name="price" type="text" inputmode="decimal" required placeholder="12.99" value="{{ v.get('price', '') }}">
+      </div>
+      <div class="field">
+        <label for="category_id">Section</label>
+        <select id="category_id" name="category_id">
+          <option value="">No section</option>
+          {% for c in categories %}<option value="{{ c.id }}" {% if v.get('category_id') == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="new_category">…or a new section</label>
+        <input id="new_category" name="new_category" type="text" maxlength="120" value="{{ v.get('new_category', '') }}" placeholder="Desserts">
+      </div>
+    </div>
+    <div class="field">
+      <label for="description">Description (optional)</label>
+      <textarea id="description" name="description" class="prose" rows="2">{{ v.get('description', '') }}</textarea>
+      <span class="hint">The AI uses this when callers ask what something is.</span>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="aliases">Other names callers use</label>
+        <input id="aliases" name="aliases" type="text" value="{{ v.get('aliases', '') }}" placeholder="chicken biriyani, biryani">
+        <span class="hint">Comma-separated. Helps the AI understand speech.</span>
+      </div>
+      <div class="field">
+        <label for="tags">Tags</label>
+        <input id="tags" name="tags" type="text" value="{{ v.get('tags', '') }}" placeholder="vegetarian, spicy">
+      </div>
+      <div class="field">
+        <label for="external_id">Your code (optional)</label>
+        <input id="external_id" name="external_id" type="text" maxlength="80" value="{{ v.get('external_id', '') }}" placeholder="BIR-001">
+        <span class="hint">POS number or SKU. Matches the <code>id</code> in JSON uploads.</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="options">Options</label>
+      <textarea id="options" name="options" rows="3" placeholder="Spice level*: Mild, Medium, Hot&#10;Add-ons (up to 2): Extra raita +1.50, Boiled egg +2.00">{{ v.get('options', '') }}</textarea>
+      <span class="hint">One group per line. <code>*</code> = the caller must choose one; <code>(up to 2)</code> = several allowed; <code>+1.50</code> = extra charge.</span>
+    </div>
+    <label class="check"><input type="checkbox" name="available" {% if v.get('available') %}checked{% endif %}> Available today</label>
+  </section>
+  <div class="row" style="justify-content:space-between">
+    <div class="row">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn" href="/app/catalog">Cancel</a>
+    </div>
+  </div>
+</form>
+{% if item %}
+<form method="post" action="/app/catalog/items/{{ item.id }}/delete" data-confirm="Delete {{ item.name }}? Past orders keep their details.">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button class="btn btn-danger" type="submit">Delete {{ btype.item }}</button>
+</form>
+{% endif %}
+{% endblock %}

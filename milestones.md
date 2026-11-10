@@ -1,9 +1,15 @@
-# VanakkamIQ Restaurant: MVP Plan
+# VanakkamIQ: MVP Plan
 
 ## Context
 VanakkamIQ is a "virtual employee" SaaS for businesses. It answers customer calls in a warm, human-sounding voice, recognizes returning callers, handles routine work itself, and brings in a person only when needed. It reports status and conversation history to both the caller and the business admin.
 
-The first product is **VanakkamIQ Restaurant**: phone order taking, FAQ answering, human handoff, and an admin dashboard. Later products (VanakkamIQ Receptionist for appointments, then other business types) plug into the same core. WhatsApp and web chat come later through a text-chat path that reuses the same business logic.
+It works for **any business**, built from modules (decided 2026-11-09):
+- **Core (every business):** answers questions from saved answers, hours and holiday closures; greets returning callers by name; takes messages for a call back; transfers to a person.
+- **Ordering (switch per business, `takes_orders`):** catalog (menu, products, services), order cart, confirmation, orders board, status texts and a status link for the caller.
+- **Later modules:** appointments (Receptionist), payments.
+- **Business type** (restaurant, shop, service business, other; `app/business_types.py`) only changes wording and defaults, never what the AI can do.
+
+Restaurants were the first business type built and tested end to end. WhatsApp and web chat come later through a text-chat path that reuses the same business logic.
 
 Decisions made:
 - **Speech-to-speech voice**, with no separate speech-to-text or text-to-speech step.
@@ -111,7 +117,7 @@ The colors and sizes are defined once as CSS custom properties in `app/admin/sta
 ## Data model (Postgres; every table carries `business_id`)
 - `businesses` (name, vertical, timezone, hours, voice name, persona/tone, handoff number, language, voice_path = `openai_sip`, later `media_stream`)
 - `phone_numbers` (e164 → business, carrier)
-- `staff_users` (business, email, password_hash, role)
+- `staff_users` (business, email, role); `platform_admins` (email); `otp_challenges` (hashed sign-in codes)
 - `menu_categories`, `menu_items` (price, available), `modifier_groups`, `modifiers`
 - `faqs` (question, answer); short FAQ lists go into the prompt, and `answer_faq` searches long ones
 - `customers` (phone, name, preferred language, notes, last_order_id)
@@ -130,7 +136,7 @@ The colors and sizes are defined once as CSS custom properties in `app/admin/sta
 7. When the call ends (`end_call` → `/hangup`, or the caller hangs up and the WebSocket closes), mark the conversation finished, generate a summary (one text-LLM call over the transcript), and update the customer record.
 
 ## Build milestones
-Status as of 2026-11-09: milestones 1–4 and 5a are written, and all 36 tests pass (run inside the Azure image build, since PyPI is blocked on the dev network). The app is deployed to Azure and healthy. Not yet tested with a real phone call.
+Status as of 2026-11-09: milestones 1–5 are written. Tests run inside the Azure image build (PyPI is blocked on the dev network). Real calls work end to end on Azure (first confirmed phone order 2026-11-09). The business-dashboard release (milestone 5, v7) is built but not yet deployed.
 
 0. ✅ **Plan saved** as `milestones.md` (this file).
 1. 🟡 **Scaffold** (written): pip/venv project (`pyproject.toml`), config, SQLAlchemy models, Alembic, seed script with a demo restaurant, menu and FAQs. SQLite locally and in tests, PostgreSQL on Azure. No docker-compose needed.
@@ -138,11 +144,13 @@ Status as of 2026-11-09: milestones 1–4 and 5a are written, and all 36 tests p
 3. 🟡 **Restaurant agent** (written): tool registry, menu search tolerant of spoken variants, order cart with options and tax, restaurant tools and instructions, returning-caller context.
 4. 🟡 **Handoff + notifications** (written): transfer with `/refer`, callback-message fallback when nobody is available or the restaurant is closed, SMS through Telnyx.
 5a. 🟡 **Platform admin: add a restaurant** (written): operator login (`python -m app.cli create-platform-admin`), restaurant list, an add-restaurant form covering details, hours, pickup/delivery, tax, phone numbers, voice, owner login, a menu pasted as text, and FAQs, plus a per-restaurant setup checklist, phone-connection steps and a pause/resume switch for answering. All in the Terracotta Sand theme, with CSRF-protected forms.
-5. ⬜ **Restaurant dashboard**: owner login, live calls, orders board, conversation history with transcripts, menu/FAQ/settings editor (Terracotta Sand theme). Also: transcript retention setting; let platform admins edit restaurant details after creation.
+5. 🟡 **Business dashboard** (written, v7): `/app` owner and staff login (passwordless: emailed one-time code; staff role can't change settings), live orders board (polls every 5 s, works across replicas, sound alerts; New → Preparing → Ready → Picked up, "Ready" and "Cancelled" text the customer), calls with live transcript, messages-to-call-back inbox, customers with notes the AI reads, catalog editor (item form, one-tap unavailable, edit-as-text), saved answers editor, settings (hours, holiday closures, numbers, voice, greeting, transcript retention). Platform admin: edit business (any IANA timezone), change type and modules, manage operator logins, usage page with estimated AI cost. Caller: order status page `/o/<token>` linked from the confirmation text. Migration 0001 frozen to explicit tables; 0002 adds the new columns and the sign-in code table, and drops password columns.
+5c. 🟡 **Passwordless sign-in** (written): every login (platform and business) is an emailed 6-digit code via Azure Communication Services, same settings as EverMindIQ (10-minute codes, 5 attempts, 60 s resend cooldown, hashed at rest, single use). Sessions last 30 days from the last visit (`SESSION_DAYS`).
+5d. 🟡 **Catalog as a JSON file** (written): owners upload a `.json` file (format agreed 2026-11-09: sections → items with optional `id`, `name`, `price`, `description`, `aliases`, `tags`, `available`, `options` with `min`/`max`/`choices`). The whole file is checked first and every problem reported with its location; a preview shows new / changed / removed items; confirming replaces the whole catalog. The current catalog downloads in the same format. Sample: `docs/sample-menu.json`.
 5b. ⬜ **Self-service sign-up** (later): sign-up wizard, AI menu import from a photo or PDF, automatic Telnyx number purchase, billing.
 6. ✅ **Azure deployment**: Container App `vanakkamiq` in resource group `vanakkamiq-rg` (West US), running on the existing PostgreSQL database (schema `vanakkamiq`). The image is built in Azure with the tests inside the build (`Dockerfile` test stage). Deploys are manual (`az acr build` + `az containerapp update`). GitHub Actions (`.github/workflows/deploy.yml`) only tests pushes; its deploy job runs only when started by hand (OIDC setup in `scripts/setup-github-deploy.sh`, not yet run). Guide: `docs/azure-deploy.md`.
 7. ⬜ **Later**: media-stream bridge (Telnyx WebSocket ↔ server) with Gemini Live and backup-model support, ChatChannel (WhatsApp / web chat), Receptionist vertical (appointments), payments, POS integrations, LLM-written call summaries.
-6b. ⬜ **Routing calls for several restaurants** (needed before the second restaurant): Telnyx's Translated Number replaces the dialed number with the OpenAI project ID, and the SIP headers then carry only the caller's number (seen on the first real call, 2026-11-09). Today `single_restaurant_fallback` answers for the only active restaurant that has a number, and never guesses when there are two or more. Options: ask Telnyx to add the dialed number as a custom header (e.g. `X-Called-Number`, which the app already checks); route through TeXML `<Dial><Sip>` with a header; or use one OpenAI project per restaurant.
+6b. ⬜ **Routing calls for several businesses** (needed before the second business): Telnyx's Translated Number replaces the dialed number with the OpenAI project ID, and the SIP headers then carry only the caller's number (seen on the first real call, 2026-11-09). Today `single_business_fallback` answers for the only active business that has a number, and never guesses when there are two or more. Options: ask Telnyx to add the dialed number as a custom header (e.g. `X-Called-Number`, which the app already checks); route through TeXML `<Dial><Sip>` with a header; or use one OpenAI project per business.
 
 ## Verification
 - **Unit tests (pytest)**: menu and order services (pricing, modifiers, unavailable items), tool handlers, session config builder, and webhook signature verification.

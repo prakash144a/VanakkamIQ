@@ -1,9 +1,10 @@
-from app.db.models import MenuItem, Modifier, ModifierGroup
+from app.agent.matching import text_score
+from app.capabilities.ordering.catalog import resolve_modifiers, search_items
+from app.db.models import CatalogItem, Modifier, ModifierGroup
 from app.money import format_money
-from app.verticals.restaurant.menu_service import resolve_modifiers, search_items, text_score
 
 
-def _biryani() -> MenuItem:
+def _biryani() -> CatalogItem:
     spice = ModifierGroup(id=1, name="Spice level", min_select=1, max_select=1, modifiers=[
         Modifier(id=1, group_id=1, name="Mild", price_delta_cents=0, is_available=True),
         Modifier(id=2, group_id=1, name="Hot", price_delta_cents=0, is_available=True),
@@ -12,15 +13,15 @@ def _biryani() -> MenuItem:
         Modifier(id=3, group_id=2, name="Extra raita", price_delta_cents=150, is_available=True),
         Modifier(id=4, group_id=2, name="Boiled egg", price_delta_cents=200, is_available=False),
     ])
-    return MenuItem(id=1, name="Chicken Biryani", price_cents=1599, aliases=["chicken biriyani"], tags=[],
+    return CatalogItem(id=1, name="Chicken Biryani", price_cents=1599, aliases=["chicken biriyani"], tags=[],
                     is_available=True, modifier_groups=[spice, addons])
 
 
-def _items() -> list[MenuItem]:
+def _items() -> list[CatalogItem]:
     return [
         _biryani(),
-        MenuItem(id=2, name="Masala Dosa", price_cents=1199, aliases=[], tags=[], is_available=True, modifier_groups=[]),
-        MenuItem(id=3, name="Mango Lassi", price_cents=499, aliases=[], tags=[], is_available=True, modifier_groups=[]),
+        CatalogItem(id=2, name="Masala Dosa", price_cents=1199, aliases=[], tags=[], is_available=True, modifier_groups=[]),
+        CatalogItem(id=3, name="Mango Lassi", price_cents=499, aliases=[], tags=[], is_available=True, modifier_groups=[]),
     ]
 
 

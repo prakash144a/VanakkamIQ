@@ -1,0 +1,78 @@
+{% extends "platform/base.html" %}
+{% set section = 'businesses' %}
+{% block title %}Edit {{ b.name }} · VanakkamIQ Platform{% endblock %}
+{% block content %}
+{% import "shared/_fields.html" as f with context %}
+{% from "shared/_ui.html" import error_list %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/platform/businesses/{{ b.id }}" class="small">← {{ b.name }}</a>
+    <h1>Edit business</h1>
+  </div>
+</div>
+
+{{ error_list(errors) }}
+
+<form method="post" action="/platform/businesses/{{ b.id }}/edit" class="stack" novalidate data-business-form data-orders-touched>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Type and modules</h2></legend>
+      {{ f.business_type_fields() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Business details</h2></legend>
+      {{ f.basics() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Opening hours</h2></legend>
+      {{ f.hours() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Phone numbers</h2></legend>
+      {{ f.text('phone_number', 'VanakkamIQ number', type='tel', required=True, hint='Changing it here does not move the number in Telnyx; update the SIP connection too.') }}
+      {{ f.staff_phones() }}
+    </fieldset>
+  </section>
+
+  <section class="card" data-orders-only>
+    <fieldset>
+      <legend><h2>Orders</h2></legend>
+      {{ f.ordering() }}
+      <p class="hint">The owner edits the <span data-catalog-word>{{ get_type(v.get('business_type')).catalog|lower }}</span> from their dashboard.</p>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Voice and personality</h2></legend>
+      {{ f.voice() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend><h2>Privacy</h2></legend>
+      {{ f.privacy() }}
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:flex-end">
+      <a class="btn" href="/platform/businesses/{{ b.id }}">Cancel</a>
+      <button class="btn btn-primary" type="submit">Save changes</button>
+    </div>
+  </section>
+</form>
+<script type="application/json" id="business-types">{{ TYPES_JSON|safe }}</script>
+{% endblock %}

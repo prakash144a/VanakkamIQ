@@ -30,8 +30,8 @@ class Settings(BaseSettings):
 
     # SIP headers searched, in order, for the number the caller dialed.
     sip_called_number_headers: list[str] = ["X-Called-Number", "Diversion", "P-Called-Party-ID", "To"]
-    # If no header holds the dialed number and exactly one active restaurant has a number, use it.
-    single_restaurant_fallback: bool = True
+    # If no header holds the dialed number and exactly one active business has a number, use it.
+    single_business_fallback: bool = True
 
     # Seconds to wait after the AI's last words before hanging up / transferring,
     # so the goodbye or "connecting you now" is heard.
@@ -42,9 +42,33 @@ class Settings(BaseSettings):
     # On shutdown, how long to let active calls finish.
     shutdown_grace_seconds: float = 300.0
 
+    # Email (Azure Communication Services): sign-in codes. Same setup as EverMindIQ.
+    acs_connection_string: str = ""  # endpoint=https://x.communication.azure.com/;accesskey=...
+    acs_sender: str = "DoNotReply@nativemindsai.com"
+
+    # Sign-in codes (passwordless login for platform admins and business staff)
+    otp_ttl_seconds: int = 600
+    otp_max_attempts: int = 5
+    otp_resend_cooldown_seconds: int = 60
+    otp_code_length: int = 6
+    # Local dev only (APP_ENV=dev, no email configured): pin every code to this value.
+    # Ignored everywhere else; see app/auth/otp.py.
+    mock_otp_code: str = ""
+    # How long a signed-in session lasts without activity (each visit extends it).
+    session_days: int = 30
+
+    # Usage page: rough AI cost per call minute (OpenAI Realtime audio), in cents.
+    ai_cost_cents_per_minute: int = 10
+    # How often to delete transcripts past each business's retention period.
+    retention_check_hours: float = 6.0
+
     @property
     def is_dev(self) -> bool:
         return self.app_env == "dev"
+
+    @property
+    def email_configured(self) -> bool:
+        return bool(self.acs_connection_string and self.acs_sender)
 
 
 @lru_cache

@@ -1,15 +1,20 @@
-"""Session login and CSRF protection for the admin screens."""
+"""Sessions and CSRF protection for the admin screens.
+
+Sign-in is passwordless: an emailed one-time code (app/auth/otp.py). Two kinds of login
+share one session cookie, which lasts SESSION_DAYS and is extended on every visit:
+- platform admins (VanakkamIQ operators): /platform
+- business staff (owner or staff of one business): /app
+"""
 
 import hmac
 import secrets
+from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, Request
 from sqlalchemy import func, select
 
-from app.db.models import PlatformAdmin
-from app.security import hash_password, verify_password
-
-_DUMMY_HASH = hash_password(secrets.token_urlsafe(16))  # equalizes timing for unknown emails
+from app.db.models import Business, PlatformAdmin, StaffUser
 
 
 def csrf_token(request: Request) -> str:
@@ -28,18 +33,19 @@ async def check_csrf(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Form expired. Go back, reload the page and try again.")
 
 
-async def authenticate_platform_admin(db, email: str, password: str) -> PlatformAdmin | None:
-    admin = await db.scalar(select(PlatformAdmin).where(func.lower(PlatformAdmin.email) == email.strip().lower()))
-    if admin is None:
-        verify_password(_DUMMY_HASH, password)
-        return None
-    return admin if verify_password(admin.password_hash, password) else None
+def _new_session(request: Request) -> None:
+    request.session.clear()  # new session on every login
+    request.session["csrf"] = secrets.token_urlsafe(32)
+
+
+# --- platform admins -----------------------------------------------------------------------
+async def find_platform_admin(db, email: str) -> PlatformAdmin | None:
+    return await db.scalar(select(PlatformAdmin).where(func.lower(PlatformAdmin.email) == email.strip().lower()))
 
 
 def log_in(request: Request, admin: PlatformAdmin) -> None:
-    request.session.clear()  # new session on login
+    _new_session(request)
     request.session["platform_admin_id"] = admin.id
-    request.session["csrf"] = secrets.token_urlsafe(32)
 
 
 async def current_platform_admin(request: Request) -> PlatformAdmin:
@@ -51,3 +57,45 @@ async def current_platform_admin(request: Request) -> PlatformAdmin:
     if admin is None:
         raise HTTPException(status_code=303, headers={"Location": "/platform/login"})
     return admin
+
+
+# --- business staff ------------------------------------------------------------------------
+@dataclass
+class StaffSession:
+    user: StaffUser
+    business: Business
+
+    @property
+    def is_owner(self) -> bool:
+        return self.user.role == "owner"
+
+
+async def find_staff(db, email: str) -> StaffUser | None:
+    return await db.scalar(select(StaffUser).where(func.lower(StaffUser.email) == email.strip().lower()))
+
+
+async def log_in_staff(request: Request, db, user: StaffUser) -> None:
+    user.last_login_at = datetime.now(timezone.utc)
+    await db.commit()
+    _new_session(request)
+    request.session["staff_user_id"] = user.id
+
+
+async def current_staff(request: Request) -> StaffSession:
+    """Any signed-in staff member of a business."""
+    user_id = request.session.get("staff_user_id")
+    if user_id is not None:
+        async with request.app.state.services.session_factory() as db:
+            user = await db.get(StaffUser, user_id)
+            business = await db.get(Business, user.business_id) if user else None
+        if user is not None and business is not None:
+            return StaffSession(user, business)
+    raise HTTPException(status_code=303, headers={"Location": "/app/login"})
+
+
+async def current_owner(request: Request) -> StaffSession:
+    """Owners only: settings, catalog and saved-answer changes."""
+    staff = await current_staff(request)
+    if not staff.is_owner:
+        raise HTTPException(status_code=403, detail="Only the business owner can change this.")
+    return staff

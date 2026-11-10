@@ -1,0 +1,101 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Upload {{ btype.catalog|lower }} · {{ b.name }}{% endblock %}
+{% block content %}
+{% from "shared/_ui.html" import error_list %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/app/catalog" class="small">← {{ btype.catalog }}</a>
+    <h1>{{ 'Check the changes' if preview else 'Upload ' ~ btype.catalog|lower ~ ' (JSON)' }}</h1>
+    <p class="muted">{{ 'Nothing has changed yet.' if preview else 'The file replaces your whole ' ~ btype.catalog|lower ~ '. You see the changes before anything is saved.' }}</p>
+  </div>
+  {% if not preview %}<a class="btn" href="/app/catalog/export.json" download>Download current {{ btype.catalog|lower }}</a>{% endif %}
+</div>
+
+{{ error_list(errors) }}
+
+{% if preview %}
+<div class="stats">
+  <div class="stat"><span class="stat-label">New</span><span class="stat-value">{{ preview.added|length }}</span></div>
+  <div class="stat"><span class="stat-label">Changed</span><span class="stat-value">{{ preview.changed|length }}</span></div>
+  <div class="stat"><span class="stat-label">Removed</span><span class="stat-value">{{ preview.removed|length }}</span></div>
+  <div class="stat"><span class="stat-label">Unchanged</span><span class="stat-value">{{ preview.unchanged }}</span></div>
+</div>
+
+<div class="grid-3" style="align-items:start">
+  <section class="card" aria-labelledby="new-h">
+    <h2 id="new-h">New</h2>
+    {% for name in preview.added %}<div class="menu-item"><span>{{ name }}</span></div>{% else %}<p class="muted">None</p>{% endfor %}
+  </section>
+  <section class="card" aria-labelledby="changed-h">
+    <h2 id="changed-h">Changed</h2>
+    {% for name, what in preview.changed %}<div class="menu-item" style="flex-direction:column;gap:0"><span>{{ name }}</span><span class="muted small">{{ what|join(', ') }}</span></div>{% else %}<p class="muted">None</p>{% endfor %}
+  </section>
+  <section class="card" aria-labelledby="removed-h">
+    <h2 id="removed-h">Removed</h2>
+    {% for name in preview.removed %}<div class="menu-item"><span>{{ name }}</span></div>{% else %}<p class="muted">None</p>{% endfor %}
+    {% if preview.removed %}<p class="muted small">The AI stops offering these. Past orders keep their details.</p>{% endif %}
+  </section>
+</div>
+
+<form method="post" action="/app/catalog/upload/confirm" class="row">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <textarea name="catalog_json" hidden aria-hidden="true">{{ catalog_json }}</textarea>
+  <button class="btn btn-primary" type="submit">Replace {{ btype.catalog|lower }}: {{ preview.total }} item{{ '' if preview.total == 1 else 's' }} in {{ preview.sections }} section{{ '' if preview.sections == 1 else 's' }}</button>
+  <a class="btn" href="/app/catalog/upload">Choose another file</a>
+</form>
+{% else %}
+<section class="card">
+  <form method="post" action="/app/catalog/upload" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="field">
+      <label for="file">JSON file</label>
+      <input id="file" name="file" type="file" accept=".json,application/json" required>
+      <span class="hint">Up to 1 MB. Tip: download the current {{ btype.catalog|lower }}, edit it, and upload it back.</span>
+    </div>
+    <div><button class="btn btn-primary" type="submit">Check file</button></div>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="format-h">
+  <h2 id="format-h">File format</h2>
+  <p class="muted">Only <code>name</code> and <code>price</code> are required for each item. Option groups need a <code>name</code> and <code>choices</code>.</p>
+  <pre class="code-sample">{
+  "sections": [
+    {
+      "name": "Biryani",
+      "items": [
+        {
+          "id": "BIR-001",
+          "name": "Chicken Biryani",
+          "price": 15.99,
+          "description": "Basmati rice layered with spiced chicken",
+          "aliases": ["chicken biriyani"],
+          "tags": ["spicy", "halal"],
+          "available": true,
+          "options": [
+            { "name": "Spice level", "min": 1, "max": 1,
+              "choices": [{ "name": "Mild" }, { "name": "Medium" }, { "name": "Hot" }] },
+            { "name": "Add-ons", "min": 0, "max": 2,
+              "choices": [{ "name": "Extra raita", "price": 1.50 },
+                          { "name": "Boiled egg", "price": 2.00, "available": false }] }
+          ]
+        }
+      ]
+    }
+  ]
+}</pre>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row"><code>id</code></th><td>Optional. Your own code (POS number, SKU). Keeps an item matched even if you rename it.</td></tr>
+        <tr><th scope="row"><code>price</code></th><td>In dollars: <code>15.99</code> or <code>"15.99"</code>.</td></tr>
+        <tr><th scope="row"><code>aliases</code></th><td>Other names callers say. Helps the AI understand speech.</td></tr>
+        <tr><th scope="row"><code>available</code></th><td>Optional, default <code>true</code>. Also works on a choice.</td></tr>
+        <tr><th scope="row"><code>min</code> / <code>max</code></th><td>How many choices the caller picks. <code>min: 1</code> makes it required. Defaults: 0 and 1.</td></tr>
+        <tr><th scope="row">choice <code>price</code></th><td>Extra charge for that choice. Default 0.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,8 +1,12 @@
-"""Database models. Every business-owned table carries business_id (multi-tenant)."""
+"""Database models. Every business-owned table carries business_id (multi-tenant).
+
+Some table and column names predate support for every business type (menu_items, vertical);
+they are kept so existing databases need no renames. The Python names are the general ones.
+"""
 
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, true
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -20,13 +24,18 @@ class Business(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(100), unique=True)
-    vertical: Mapped[str] = mapped_column(String(40), default="restaurant")
+    # restaurant | retail | services | other: wording and defaults only (see app/business_types.py)
+    business_type: Mapped[str] = mapped_column("vertical", String(40), default="restaurant")
+    description: Mapped[str | None] = mapped_column(Text)  # what the business does, in its own words
     timezone: Mapped[str] = mapped_column(String(64), default="America/New_York")
     address: Mapped[str | None] = mapped_column(String(300))
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     # {"mon": [["11:00", "22:00"]], "tue": [...], ...}; missing day = closed
     hours: Mapped[dict] = mapped_column(default=dict)
+    # [{"date": "2026-12-25", "note": "Christmas Day"}]: closed all day
+    closures: Mapped[list] = mapped_column(default=list, server_default="[]")
     persona: Mapped[str | None] = mapped_column(Text)  # tone / personality notes for the AI
+    greeting: Mapped[str | None] = mapped_column(Text)  # optional custom opening line
     language: Mapped[str] = mapped_column(String(20), default="en-US")
     voice: Mapped[str] = mapped_column(String(40), default="marin")
     model: Mapped[str | None] = mapped_column(String(80))  # per-business model override
@@ -34,24 +43,42 @@ class Business(Base):
     handoff_phone: Mapped[str | None] = mapped_column(String(20))  # staff number for live transfer
     notify_phone: Mapped[str | None] = mapped_column(String(20))  # staff number for SMS alerts
     sms_from: Mapped[str | None] = mapped_column(String(20))  # Telnyx number SMS is sent from
+    # Ordering module: catalog, cart, order confirmation, orders board
+    takes_orders: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     offers_pickup: Mapped[bool] = mapped_column(Boolean, default=True)
     offers_delivery: Mapped[bool] = mapped_column(Boolean, default=False)
     tax_rate_bps: Mapped[int] = mapped_column(Integer, default=0)  # 887 = 8.87%
     large_order_cents: Mapped[int | None] = mapped_column(Integer)  # above this, involve staff
+    transcript_retention_days: Mapped[int | None] = mapped_column(Integer)  # None = keep
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class PlatformAdmin(Base):
-    """VanakkamIQ operators: can see and onboard every restaurant."""
+    """VanakkamIQ operators: can see and onboard every business."""
 
     __tablename__ = "platform_admins"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     name: Mapped[str | None] = mapped_column(String(120))
-    password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class OtpChallenge(Base):
+    """A pending sign-in code. Only its SHA-256 hash is stored; the code itself exists only
+    in the email. One per (email, audience); a new request replaces the old one."""
+
+    __tablename__ = "otp_challenges"
+    __table_args__ = (UniqueConstraint("email", "audience"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(254))
+    audience: Mapped[str] = mapped_column(String(20))  # platform | staff
+    code_sha256: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class PhoneNumber(Base):
@@ -70,11 +97,13 @@ class StaffUser(Base):
     business_id: Mapped[int] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     name: Mapped[str | None] = mapped_column(String(120))
-    password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(20), default="owner")
+    role: Mapped[str] = mapped_column(String(20), default="owner")  # owner | staff
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class MenuCategory(Base):
+class CatalogCategory(Base):
+    """A section of the menu / product list / service list."""
+
     __tablename__ = "menu_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -83,12 +112,15 @@ class MenuCategory(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
 
-class MenuItem(Base):
+class CatalogItem(Base):
+    """Something callers can order: a dish, a product, a service."""
+
     __tablename__ = "menu_items"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     business_id: Mapped[int] = mapped_column(ForeignKey("businesses.id", ondelete="CASCADE"), index=True)
     category_id: Mapped[int | None] = mapped_column(ForeignKey("menu_categories.id", ondelete="SET NULL"))
+    external_id: Mapped[str | None] = mapped_column(String(80))  # the business's own code (POS number, SKU)
     name: Mapped[str] = mapped_column(String(160))
     description: Mapped[str | None] = mapped_column(Text)
     price_cents: Mapped[int] = mapped_column(Integer)
@@ -97,7 +129,7 @@ class MenuItem(Base):
     tags: Mapped[list] = mapped_column(default=list)  # e.g. ["vegetarian", "spicy"]
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
-    category: Mapped[MenuCategory | None] = relationship(lazy="selectin")
+    category: Mapped[CatalogCategory | None] = relationship(lazy="selectin")
     modifier_groups: Mapped[list["ModifierGroup"]] = relationship(
         lazy="selectin", cascade="all, delete-orphan", order_by="ModifierGroup.id"
     )
@@ -194,8 +226,11 @@ class Order(Base):
     conversation_id: Mapped[int | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"))
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"))
     number: Mapped[int | None] = mapped_column(Integer)  # assigned on confirm
-    # draft | confirmed | in_kitchen | ready | completed | cancelled
+    # draft | confirmed | in_progress | ready | completed | cancelled
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
+    status_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Unguessable id for the caller's order-status link
+    public_token: Mapped[str | None] = mapped_column(String(40), index=True, unique=True)
     fulfillment: Mapped[str] = mapped_column(String(20), default="pickup")  # pickup | delivery
     customer_name: Mapped[str | None] = mapped_column(String(120))
     customer_phone: Mapped[str | None] = mapped_column(String(20))
@@ -241,3 +276,5 @@ class Handoff(Base):
     callback_phone: Mapped[str | None] = mapped_column(String(20))
     message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # staff marked it done
+    resolved_by: Mapped[str | None] = mapped_column(String(254))

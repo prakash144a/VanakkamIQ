@@ -1,0 +1,16 @@
+{% if live %}
+<ul class="live-list">
+  {% for row in live %}
+  <li>
+    <a class="live-call" href="/app/calls/{{ row.c.id }}">
+      <span class="chip chip-live"><span class="dot"></span>Live</span>
+      <strong>{{ row.c.caller_phone or 'Hidden number' }}</strong>
+      <span class="muted small">since {{ row.when.strftime('%I:%M %p').lstrip('0') if row.when else '' }}</span>
+      <span class="small">Listen in on the transcript →</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No one is on the phone right now.</p>
+{% endif %}

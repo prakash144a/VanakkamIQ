@@ -1,14 +1,16 @@
 {% extends "platform/base.html" %}
+{% set section = 'businesses' %}
 {% block title %}{{ b.name }} · VanakkamIQ Platform{% endblock %}
 {% block content %}
 <div class="page-head">
   <div class="stack" style="gap:4px">
-    <a href="/platform" class="small">← All restaurants</a>
+    <a href="/platform" class="small">← All businesses</a>
     <h1>{{ b.name }}</h1>
-    <p class="muted">{{ b.address or 'No address' }} · {{ b.timezone }}</p>
+    <p class="muted">{{ btype.label }} · {{ 'Orders + questions' if b.takes_orders else 'Questions & messages' }} · {{ b.timezone }}</p>
   </div>
-  <form method="post" action="/platform/restaurants/{{ b.id }}/status" class="row">
-    <a class="btn" href="/platform/restaurants/{{ b.id }}/calls">Recent calls</a>
+  <form method="post" action="/platform/businesses/{{ b.id }}/status" class="row">
+    <a class="btn" href="/platform/businesses/{{ b.id }}/calls">Recent calls</a>
+    <a class="btn" href="/platform/businesses/{{ b.id }}/edit">Edit</a>
     <input type="hidden" name="csrf" value="{{ csrf }}">
     {% if b.is_active %}
       <span class="chip chip-success"><span class="dot"></span>Answering calls</span>
@@ -24,13 +26,8 @@
 
 {% if created %}
 <div class="alert alert-success" role="status">
-  <strong>{{ b.name }} is set up{% if created.item_count %} with {{ created.item_count }} menu item{{ '' if created.item_count == 1 else 's' }}{% endif %}.</strong>
-  {% if created.temporary_password %}
-  <span>Temporary owner password for {{ created.owner_email }}: <span class="secret">{{ created.temporary_password }}</span></span>
-  <span class="small">Copy it now and share it securely; it won't be shown again.</span>
-  {% else %}
-  <span>Owner login: {{ created.owner_email }}</span>
-  {% endif %}
+  <strong>{{ b.name }} is set up{% if created.item_count %} with {{ created.item_count }} item{{ '' if created.item_count == 1 else 's' }}{% endif %}.</strong>
+  <span>The owner signs in at <code>/app/login</code> with a code emailed to {{ created.owner_email }}.</span>
 </div>
 {% endif %}
 
@@ -65,10 +62,10 @@
     <ol class="steps">
       <li>In Telnyx, assign <strong>{{ numbers|join(', ') or 'the number' }}</strong> to the SIP connection that sends calls to
         <code>sip:{{ openai_project_id or '<OPENAI_PROJECT_ID>' }}@sip.api.openai.com;transport=tls</code>.</li>
-      <li>To keep the restaurant's current number, have them turn on call forwarding to
+      <li>To keep the business's current number, have them turn on call forwarding to
         <strong>{{ numbers[0] if numbers else 'the VanakkamIQ number' }}</strong>: always, or only when busy / unanswered.</li>
-      <li>Place a test call, order something, and check it appears in the restaurant's orders.</li>
-      <li>For SMS confirmations, attach the number to a Telnyx messaging profile and finish 10DLC registration.</li>
+      <li>Place a test call{{ ', order something' if b.takes_orders else '' }}, and check it appears in the owner's dashboard.</li>
+      <li>For text messages, attach the number to a Telnyx messaging profile and finish 10DLC registration.</li>
     </ol>
     <p class="muted small">Details: <code>docs/telnyx-openai-sip.md</code></p>
   </section>
@@ -80,41 +77,74 @@
     <div class="table-wrap">
       <table>
         <tbody>
+          {% if b.takes_orders %}
           <tr><th scope="row">Orders</th><td>{{ 'Pickup' if b.offers_pickup }}{{ ' & ' if b.offers_pickup and b.offers_delivery }}{{ 'Delivery' if b.offers_delivery }}</td></tr>
           <tr><th scope="row">Sales tax</th><td>{{ '%.3f'|format(b.tax_rate_bps / 100)|replace('.000', '') }}%</td></tr>
           <tr><th scope="row">Large order</th><td>{{ format_money(b.large_order_cents, b.currency) if b.large_order_cents else 'No limit' }}</td></tr>
+          {% endif %}
           <tr><th scope="row">Voice</th><td>{{ b.voice|capitalize }} · {{ b.language }}</td></tr>
-          <tr><th scope="row">Owner login</th><td>{% for o in owners %}{{ o.email }}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+          <tr><th scope="row">Transcripts</th><td>{{ 'Kept ' ~ b.transcript_retention_days ~ ' days' if b.transcript_retention_days else 'Kept' }}</td></tr>
           <tr><th scope="row">Hours</th><td>
             {% for day in DAYS %}
               <div>{{ DAY_NAMES[day] }}: {% if b.hours.get(day) %}{% for r in b.hours[day] %}{{ r[0] }}–{{ r[1] }}{% endfor %}{% else %}<span class="muted">closed</span>{% endif %}</div>
             {% endfor %}
+            {% for c in b.closures or [] %}<div class="muted small">Closed {{ c.date }}{{ ' · ' ~ c.note if c.note }}</div>{% endfor %}
           </td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
+  <section class="card" aria-labelledby="logins-h">
+    <h2 id="logins-h">Dashboard logins</h2>
+    <p class="muted small">Sign-in is by emailed code at <code>/app/login</code>; there are no passwords to reset.</p>
+    {% for o in owners %}
+    <div class="row" style="justify-content:space-between">
+      <span>
+        <strong>{{ o.email }}</strong> <span class="muted small">· {{ o.role }}</span>
+        <div class="muted small">{% if o.last_login_at %}Last signed in {{ o.last_login_at.strftime('%b %d, %Y') }}{% else %}Never signed in{% endif %}</div>
+      </span>
+    </div>
+    {% else %}
+    <p class="muted">No logins.</p>
+    {% endfor %}
+  </section>
+</div>
+
+<div class="grid-2">
+  {% if b.takes_orders %}
   <section class="card" aria-labelledby="menu-h">
     <div class="card-head">
-      <h2 id="menu-h">Menu</h2>
-      <span class="muted small">{{ faqs|length }} FAQ{{ '' if faqs|length == 1 else 's' }}</span>
+      <h2 id="menu-h">{{ btype.catalog }}</h2>
     </div>
-    {% if menu %}
-      {% for category, items in menu %}
+    {% if catalog %}
+      {% for category, items in catalog %}
       <div class="menu-cat">
         <h3>{{ category.name }}</h3>
         {% for item in items %}
         <div class="menu-item">
-          <span>{{ item.name }}{% for g in item.modifier_groups %}<span class="muted small"> · {{ g.name }}{{ '*' if g.min_select }}</span>{% endfor %}</span>
+          <span>{{ item.name }}{% for g in item.modifier_groups %}<span class="muted small"> · {{ g.name }}{{ '*' if g.min_select }}</span>{% endfor %}{% if not item.is_available %} <span class="chip">Unavailable</span>{% endif %}</span>
           <span>{{ format_money(item.price_cents, b.currency) }}</span>
         </div>
         {% endfor %}
       </div>
       {% endfor %}
     {% else %}
-      <p class="muted">No menu yet. The AI can answer questions but can't take orders until items are added.</p>
+      <p class="muted">Nothing yet. The AI answers questions but can't take orders until items are added.</p>
     {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="card" aria-labelledby="faq-h">
+    <h2 id="faq-h">Saved answers</h2>
+    {% for faq in faqs %}
+    <div class="menu-item" style="flex-direction:column;gap:2px">
+      <strong>{{ faq.question }}</strong>
+      <span class="muted">{{ faq.answer }}</span>
+    </div>
+    {% else %}
+    <p class="muted">None yet.</p>
+    {% endfor %}
   </section>
 </div>
 {% endblock %}

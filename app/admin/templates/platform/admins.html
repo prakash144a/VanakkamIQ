@@ -1,0 +1,46 @@
+{% extends "platform/base.html" %}
+{% set section = 'admins' %}
+{% block title %}Admins · VanakkamIQ Platform{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Platform admins</h1>
+    <p class="muted">People who can add and manage every business.</p>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+{% if added %}<div class="alert alert-success" role="status"><strong>Admin added.</strong><span>{{ added }} can now sign in at <code>/platform/login</code> with a code emailed to them.</span></div>{% endif %}
+
+<div class="grid-2" style="align-items:start">
+  <section class="card" aria-label="Admins">
+    {% for a in admins %}
+    <div class="row" style="justify-content:space-between">
+      <span><strong>{{ a.email }}</strong>{% if a.name %} <span class="muted">· {{ a.name }}</span>{% endif %}{% if a.id == admin.id %} <span class="chip">You</span>{% endif %}</span>
+      {% if a.id != admin.id %}
+      <form method="post" action="/platform/admins/{{ a.id }}/delete" data-confirm="Remove {{ a.email }}? They won't be able to sign in.">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn" type="submit">Remove</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="card" aria-labelledby="add-h">
+    <h2 id="add-h">Add an admin</h2>
+    <form method="post" action="/platform/admins" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="off" value="{{ v.get('email', '') }}">
+      </div>
+      <div class="field">
+        <label for="name">Name (optional)</label>
+        <input id="name" name="name" type="text" value="{{ v.get('name', '') }}">
+      </div>
+      <button class="btn btn-primary" type="submit">Add admin</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

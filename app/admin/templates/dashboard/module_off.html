@@ -1,0 +1,9 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Not switched on · {{ b.name }}{% endblock %}
+{% block content %}
+<section class="card" style="align-items:flex-start">
+  <h1>Phone orders aren't switched on</h1>
+  <p class="muted">Right now the AI answers questions and takes messages for {{ b.name }}. Contact VanakkamIQ if you'd like it to take orders too.</p>
+  <a class="btn" href="/app/calls">See calls</a>
+</section>
+{% endblock %}

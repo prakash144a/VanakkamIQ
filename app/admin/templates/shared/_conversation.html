@@ -1,0 +1,60 @@
+{% from "shared/_ui.html" import status_chip %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="{{ back_href }}" class="small">← {{ back_label }}</a>
+    <h1>Call from {{ c.caller_phone or 'hidden number' }}</h1>
+    <p class="muted">{{ when.strftime('%A %b %d, %I:%M %p') if when else '' }} · {{ duration }}</p>
+  </div>
+  {{ status_chip(c.status) }}
+</div>
+
+{% if c.summary %}<div class="alert alert-success" role="status"><span>{{ c.summary }}</span></div>{% endif %}
+
+<div class="grid-2" style="align-items:start">
+  <section class="card" aria-labelledby="t-h">
+    <div class="card-head">
+      <h2 id="t-h">Transcript</h2>
+      {% if c.status == 'active' and events_url %}<span class="chip chip-live" data-live-chip><span class="dot"></span>Updating live</span>{% endif %}
+    </div>
+    <ol class="transcript" {% if c.status == 'active' and events_url %}data-live-events="{{ events_url }}"{% endif %} aria-live="polite">
+      {% include "shared/_events.html" %}
+    </ol>
+    {% if not events %}<p class="muted" data-empty>{{ 'Waiting for the conversation…' if c.status == 'active' else 'Nothing was recorded for this call.' }}</p>{% endif %}
+  </section>
+
+  <div class="stack">
+    {% for o in orders %}
+    <section class="card" aria-label="Order">
+      <div class="card-head">
+        <h2>{% if o.number %}Order #{{ o.number }}{% else %}Unfinished order{% endif %}</h2>
+        <span class="chip {{ 'chip-success' if o.status not in ('draft', 'cancelled') else '' }}">{{ status_label(get_type(b.business_type), o.status, o.fulfillment) }}</span>
+      </div>
+      <p class="muted">{{ o.customer_name or 'No name' }} · {{ o.fulfillment|capitalize }}{% if o.requested_time %} · {{ o.requested_time }}{% endif %}{% if o.delivery_address %}<br>{{ o.delivery_address }}{% endif %}</p>
+      <div>
+        {% for li in o.items %}
+        <div class="menu-item">
+          <span>{{ li.quantity }} × {{ li.name }}
+            {% if li.modifiers %}<span class="muted small"> · {{ li.modifiers | map(attribute='name') | join(', ') }}</span>{% endif %}
+            {% if li.special_instructions %}<br><span class="muted small">“{{ li.special_instructions }}”</span>{% endif %}
+          </span>
+          <span>{{ format_money(li.line_total_cents, b.currency) }}</span>
+        </div>
+        {% endfor %}
+        <div class="menu-item muted"><span>Subtotal</span><span>{{ format_money(o.subtotal_cents, b.currency) }}</span></div>
+        <div class="menu-item muted"><span>Tax</span><span>{{ format_money(o.tax_cents, b.currency) }}</span></div>
+        <div class="menu-item"><strong>Total</strong><strong>{{ format_money(o.total_cents, b.currency) }}</strong></div>
+      </div>
+      {% if o.notes %}<p class="small">Notes: {{ o.notes }}</p>{% endif %}
+    </section>
+    {% endfor %}
+
+    {% for h in handoffs %}
+    <section class="card" aria-label="Handoff">
+      <h2>{{ 'Message for a callback' if h.outcome == 'callback_requested' else 'Transfer to staff' }}</h2>
+      <p>{{ h.message or h.reason }}</p>
+      {% if h.callback_phone %}<p class="muted">Call back: {{ h.callback_name or '' }} {{ h.callback_phone }}</p>{% endif %}
+      <p class="muted small">{{ 'Handled' if h.resolved_at else h.outcome|replace('_', ' ')|capitalize }}</p>
+    </section>
+    {% endfor %}
+  </div>
+</div>

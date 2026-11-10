@@ -1,40 +1,17 @@
 {% extends "platform/base.html" %}
+{% set section = 'businesses' %}
 {% block title %}Calls · {{ b.name }} · VanakkamIQ Platform{% endblock %}
 {% block content %}
-{% from "platform/_status.html" import status_chip %}
+{% from "shared/_ui.html" import calls_table %}
 <div class="page-head">
   <div class="stack" style="gap:4px">
-    <a href="/platform/restaurants/{{ b.id }}" class="small">← {{ b.name }}</a>
+    <a href="/platform/businesses/{{ b.id }}" class="small">← {{ b.name }}</a>
     <h1>Recent calls</h1>
     <p class="muted">Last 50 calls · times in {{ b.timezone }}</p>
   </div>
 </div>
 
 <section class="card" aria-label="Recent calls">
-  {% if rows %}
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th scope="col">When</th><th scope="col">Caller</th><th scope="col">Length</th><th scope="col">Outcome</th><th scope="col">Summary</th></tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          <td><a href="/platform/conversations/{{ row.c.id }}"><strong>{{ row.when.strftime('%b %d, %I:%M %p') if row.when else '—' }}</strong></a></td>
-          <td>{{ row.c.caller_phone or 'Hidden' }}</td>
-          <td>{{ row.duration }}</td>
-          <td>{{ status_chip(row.c.status) }}</td>
-          <td>
-            {% if row.order and row.order.number %}<strong>Order #{{ row.order.number }}</strong> · {{ format_money(row.order.total_cents, b.currency) }}<br>{% endif %}
-            <span class="muted small">{{ row.c.summary or '' }}</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="muted">No calls yet.</p>
-  {% endif %}
+  {% if rows %}{{ calls_table(rows, b, '/platform/conversations') }}{% else %}<p class="muted">No calls yet.</p>{% endif %}
 </section>
 {% endblock %}

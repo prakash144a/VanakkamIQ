@@ -2,41 +2,36 @@
 
     python -m app.cli create-platform-admin --email you@example.com [--name "Your Name"]
 
-The password is asked for interactively (or read from PLATFORM_ADMIN_PASSWORD).
+There are no passwords: the admin signs in at /platform/login with a code emailed to them.
 """
 
 import argparse
 import asyncio
-import getpass
-import os
-import sys
 
 from sqlalchemy import func, select
 
 from app.config import get_settings
 from app.db.models import Base, PlatformAdmin
 from app.db.session import make_engine, make_session_factory
-from app.onboarding.service import MIN_PASSWORD
-from app.security import hash_password
 
 
-async def create_platform_admin(email: str, name: str | None, password: str) -> str:
+async def create_platform_admin(email: str, name: str | None) -> str:
     settings = get_settings()
     engine = make_engine(settings.database_url, settings.database_schema)
     if settings.database_url.startswith("sqlite"):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+    email = email.strip().lower()
     try:
         async with make_session_factory(engine)() as db:
-            existing = await db.scalar(select(PlatformAdmin).where(func.lower(PlatformAdmin.email) == email.lower()))
+            existing = await db.scalar(select(PlatformAdmin).where(func.lower(PlatformAdmin.email) == email))
             if existing is not None:
-                existing.password_hash = hash_password(password)
                 if name:
                     existing.name = name
-                message = f"Updated password for platform admin {email}"
+                message = f"{email} is already a platform admin"
             else:
-                db.add(PlatformAdmin(email=email.lower(), name=name, password_hash=hash_password(password)))
-                message = f"Created platform admin {email}"
+                db.add(PlatformAdmin(email=email, name=name))
+                message = f"Created platform admin {email}: sign in at /platform/login with a code sent to that address"
             await db.commit()
     finally:
         await engine.dispose()
@@ -46,16 +41,11 @@ async def create_platform_admin(email: str, name: str | None, password: str) -> 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     sub = parser.add_subparsers(dest="command", required=True)
-    create = sub.add_parser("create-platform-admin", help="Create (or reset) a VanakkamIQ platform admin login")
+    create = sub.add_parser("create-platform-admin", help="Give an email address platform admin access")
     create.add_argument("--email", required=True)
     create.add_argument("--name")
     args = parser.parse_args(argv)
-
-    password = os.getenv("PLATFORM_ADMIN_PASSWORD") or getpass.getpass("Password: ")
-    if len(password) < MIN_PASSWORD:
-        print(f"Password must be at least {MIN_PASSWORD} characters.", file=sys.stderr)
-        return 1
-    print(asyncio.run(create_platform_admin(args.email, args.name, password)))
+    print(asyncio.run(create_platform_admin(args.email, args.name)))
     return 0
 
 

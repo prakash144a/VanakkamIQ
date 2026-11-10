@@ -1,0 +1,62 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ btype.catalog }} · {{ b.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>{{ btype.catalog }}</h1>
+    <p class="muted">{{ item_count }} item{{ '' if item_count == 1 else 's' }}. The AI only offers what's here, at these prices.</p>
+  </div>
+  {% if staff.is_owner %}
+  <div class="row">
+    <a class="btn" href="/app/catalog/upload">Upload JSON</a>
+    <a class="btn" href="/app/catalog/text">Edit as text</a>
+    <a class="btn btn-primary" href="/app/catalog/items/new">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Add {{ btype.item }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% if saved.startswith('all') %}<div class="alert alert-success" role="status">{{ btype.catalog }} replaced: {{ saved[3:] }} items.</div>
+{% elif saved %}<div class="alert alert-success" role="status">Saved. The AI uses it from the next call.</div>{% endif %}
+
+{% if sections %}
+<p class="hint">Out of something today? Switch it to <strong>Unavailable</strong>: the AI tells callers and suggests something else.</p>
+{% for category, items in sections %}
+<section class="card" aria-label="{{ category.name if category else 'Other' }}">
+  <h2>{{ category.name if category else 'Other' }}</h2>
+  <ul class="catalog-list">
+    {% for item in items %}
+    <li class="catalog-item {{ 'is-off' if not item.is_available }}" id="item-{{ item.id }}">
+      <div class="catalog-main">
+        <strong>{{ item.name }}</strong> <span>{{ format_money(item.price_cents, b.currency) }}</span>
+        <div class="muted small">
+          {% for g in item.modifier_groups %}{{ g.name }}{{ ' (required)' if g.min_select }}: {{ g.modifiers | map(attribute='name') | join(', ') }}{% if not loop.last %} · {% endif %}{% endfor %}
+          {% if item.tags %}{{ ' · ' if item.modifier_groups }}{{ item.tags|join(', ') }}{% endif %}
+        </div>
+      </div>
+      <div class="catalog-actions">
+        <form method="post" action="/app/catalog/items/{{ item.id }}/availability">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="available" value="{{ '0' if item.is_available else '1' }}">
+          <button class="switch" type="submit" role="switch" aria-checked="{{ 'true' if item.is_available else 'false' }}" aria-label="{{ item.name }} available">
+            <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+            <span class="switch-text">{{ 'Available' if item.is_available else 'Unavailable' }}</span>
+          </button>
+        </form>
+        {% if staff.is_owner %}<a class="btn btn-quiet" href="/app/catalog/items/{{ item.id }}">Edit</a>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% else %}
+<section class="card" style="align-items:flex-start">
+  <h2>Nothing here yet</h2>
+  <p class="muted">Add your first {{ btype.item }}, or paste your whole {{ btype.catalog|lower }} as text.</p>
+  {% if staff.is_owner %}<div class="row"><a class="btn btn-primary" href="/app/catalog/items/new">Add {{ btype.item }}</a><a class="btn" href="/app/catalog/upload">Upload JSON</a><a class="btn" href="/app/catalog/text">Paste as text</a></div>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

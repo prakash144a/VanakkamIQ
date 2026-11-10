@@ -1,0 +1,55 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Saved answers · {{ b.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Saved answers</h1>
+    <p class="muted">The AI answers questions only from these, your hours and your address. It never guesses.</p>
+  </div>
+</div>
+
+{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+<div class="stack">
+  {% for faq in faqs %}
+  <section class="card faq" id="faq-{{ faq.id }}" aria-label="{{ faq.question }}">
+    {% if staff.is_owner and edit == faq.id %}
+    <form method="post" action="/app/faqs/{{ faq.id }}" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="q-{{ faq.id }}">Question</label><input id="q-{{ faq.id }}" name="question" type="text" value="{{ faq.question }}" required></div>
+      <div class="field"><label for="a-{{ faq.id }}">Answer</label><textarea id="a-{{ faq.id }}" name="answer" class="prose" rows="3" required>{{ faq.answer }}</textarea></div>
+      <div class="row"><button class="btn btn-primary" type="submit">Save</button><a class="btn" href="/app/faqs#faq-{{ faq.id }}">Cancel</a></div>
+    </form>
+    {% else %}
+    <div class="card-head">
+      <h2>{{ faq.question }}</h2>
+      {% if staff.is_owner %}
+      <div class="row">
+        <a class="btn btn-quiet" href="/app/faqs?edit={{ faq.id }}#faq-{{ faq.id }}">Edit</a>
+        <form method="post" action="/app/faqs/{{ faq.id }}/delete" data-confirm="Delete this saved answer?">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="btn btn-quiet" type="submit">Delete</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    <p>{{ faq.answer }}</p>
+    {% endif %}
+  </section>
+  {% else %}
+  <section class="card"><p class="muted">No saved answers yet. Add the questions callers ask most: parking, prices, policies, what you offer.</p></section>
+  {% endfor %}
+
+  {% if staff.is_owner %}
+  <section class="card" id="faq-new" aria-labelledby="new-h">
+    <h2 id="new-h">Add a saved answer</h2>
+    <form method="post" action="/app/faqs" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field"><label for="question">Question</label><input id="question" name="question" type="text" value="{{ v.get('question', '') }}" placeholder="Is there parking?" required></div>
+      <div class="field"><label for="answer">Answer</label><textarea id="answer" name="answer" class="prose" rows="3" placeholder="Yes, free parking behind the building." required>{{ v.get('answer', '') }}</textarea></div>
+      <div><button class="btn btn-primary" type="submit">Add answer</button></div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

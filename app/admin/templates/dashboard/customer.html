@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ c.name or c.phone }} · {{ b.name }}{% endblock %}
+{% block content %}
+{% from "shared/_ui.html" import status_chip %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/app/customers" class="small">← Customers</a>
+    <h1>{{ c.name or 'Name not known' }}</h1>
+    <p class="muted"><a href="tel:{{ c.phone }}">{{ c.phone }}</a>{% if b.takes_orders %} · {{ c.order_count }} order{{ '' if c.order_count == 1 else 's' }}{% endif %}</p>
+  </div>
+</div>
+
+{% if saved %}<div class="alert alert-success" role="status">Saved. The AI will use this on their next call.</div>{% endif %}
+
+<div class="grid-2" style="align-items:start">
+  <section class="card" aria-labelledby="notes-h">
+    <h2 id="notes-h">What the AI knows</h2>
+    <form method="post" action="/app/customers/{{ c.id }}" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" maxlength="120" value="{{ c.name or '' }}">
+        <span class="hint">Used to greet them: "Vanakkam, {{ c.name or 'Priya' }}!"</span>
+      </div>
+      <div class="field">
+        <label for="notes">Notes for the AI</label>
+        <textarea id="notes" name="notes" class="prose" rows="4" maxlength="2000" placeholder="Prefers mild spice. Usually picks up after 6 PM.">{{ c.notes or '' }}</textarea>
+        <span class="hint">The AI reads these during calls. Don't include anything you wouldn't want said aloud.</span>
+      </div>
+      <button class="btn btn-primary" type="submit">Save</button>
+    </form>
+  </section>
+
+  <div class="stack">
+    {% if b.takes_orders %}
+    <section class="card" aria-labelledby="orders-h">
+      <h2 id="orders-h">Orders</h2>
+      {% for row in orders %}
+      <div class="menu-item">
+        <span><strong>#{{ row.o.number }}</strong> · {{ row.when.strftime('%b %d') if row.when else '' }} · {{ row.o.items | map(attribute='name') | join(', ') }}</span>
+        <span>{{ format_money(row.o.total_cents, b.currency) }}</span>
+      </div>
+      {% else %}<p class="muted">No orders yet.</p>{% endfor %}
+    </section>
+    {% endif %}
+    <section class="card" aria-labelledby="calls-h">
+      <h2 id="calls-h">Calls</h2>
+      {% for row in calls %}
+      <div class="menu-item">
+        <a href="/app/calls/{{ row.c.id }}">{{ row.when.strftime('%b %d, %I:%M %p') if row.when else 'Call' }}</a>
+        {{ status_chip(row.c.status) }}
+      </div>
+      {% else %}<p class="muted">No calls.</p>{% endfor %}
+    </section>
+  </div>
+</div>
+{% endblock %}

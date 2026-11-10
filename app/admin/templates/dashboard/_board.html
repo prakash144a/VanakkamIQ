@@ -1,0 +1,74 @@
+{% set next_label = {'confirmed': 'Start ' ~ btype.in_progress|lower, 'in_progress': 'Mark ready'} %}
+{% set column_title = {'confirmed': 'New', 'in_progress': btype.in_progress, 'ready': 'Ready'} %}
+{% set next_status = {'confirmed': 'in_progress', 'in_progress': 'ready', 'ready': 'completed'} %}
+<div class="board">
+  {% for status, orders in columns %}
+  <section class="board-col" aria-labelledby="col-{{ status }}">
+    <h2 id="col-{{ status }}" class="board-title">{{ column_title[status] }} <span class="muted">{{ orders|length }}</span></h2>
+    {% for o in orders %}
+    <article class="order-card {{ 'order-new' if status == 'confirmed' }}" data-order-id="{{ o.id }}" data-order-status="{{ status }}" aria-label="Order {{ o.number }}">
+      <div class="order-head">
+        <strong class="order-no">#{{ o.number }}</strong>
+        <span class="muted small">{{ times[o.id].strftime('%I:%M %p').lstrip('0') if times[o.id] else '' }}</span>
+      </div>
+      <div class="order-who">
+        <strong>{{ o.customer_name or 'Caller' }}</strong>
+        <span class="chip {{ 'chip-accent' if o.fulfillment == 'delivery' }}">{{ o.fulfillment|capitalize }}{% if o.requested_time %} · {{ o.requested_time }}{% endif %}</span>
+      </div>
+      {% if o.delivery_address %}<p class="small">{{ o.delivery_address }}</p>{% endif %}
+      <ul class="order-lines">
+        {% for li in o.items %}
+        <li><strong>{{ li.quantity }}×</strong> {{ li.name }}{% if li.modifiers %}<span class="muted"> · {{ li.modifiers | map(attribute='name') | join(', ') }}</span>{% endif %}{% if li.special_instructions %}<br><span class="note">“{{ li.special_instructions }}”</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% if o.notes %}<p class="note">Note: {{ o.notes }}</p>{% endif %}
+      <div class="order-foot">
+        <span><strong>{{ format_money(o.total_cents, b.currency) }}</strong>{% if o.customer_phone %} <a class="small" href="tel:{{ o.customer_phone }}">{{ o.customer_phone }}</a>{% endif %}</span>
+      </div>
+      <div class="order-actions">
+        <form method="post" action="/app/orders/{{ o.id }}/status">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="status" value="{{ next_status[status] }}">
+          <button class="btn btn-primary" type="submit">{{ next_label.get(status) or ('Delivered' if o.fulfillment == 'delivery' else 'Picked up') }}</button>
+        </form>
+        <form method="post" action="/app/orders/{{ o.id }}/status" data-confirm="Cancel order #{{ o.number }}? The customer gets a text saying it was cancelled.">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="status" value="cancelled">
+          <button class="btn btn-quiet" type="submit">Cancel</button>
+        </form>
+      </div>
+      {% if status == 'in_progress' and o.customer_phone %}<p class="muted small">"Mark ready" texts the customer.</p>{% endif %}
+    </article>
+    {% else %}
+    <p class="board-empty muted small">{{ 'No new orders' if status == 'confirmed' else 'Nothing here' }}</p>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+
+{% if closed %}
+<section class="card" aria-labelledby="closed-h" style="margin-top:24px">
+  <h2 id="closed-h">Last 24 hours</h2>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        {% for o in closed %}
+        <tr>
+          <td><strong>#{{ o.number }}</strong></td>
+          <td>{{ o.customer_name or 'Caller' }}</td>
+          <td>{{ o.items|length }} item{{ '' if o.items|length == 1 else 's' }} · {{ format_money(o.total_cents, b.currency) }}</td>
+          <td><span class="chip {{ 'chip-success' if o.status == 'completed' }}">{{ status_label(btype, o.status, o.fulfillment) }}</span></td>
+          <td class="num">
+            <form method="post" action="/app/orders/{{ o.id }}/status">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="status" value="{{ 'ready' if o.status == 'completed' else 'confirmed' }}">
+              <button class="btn-link btn" type="submit">Reopen</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}

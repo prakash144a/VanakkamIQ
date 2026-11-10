@@ -1,0 +1,53 @@
+{% extends "platform/base.html" %}
+{% set section = 'usage' %}
+{% block title %}Usage · VanakkamIQ Platform{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Usage</h1>
+    <p class="muted">Last {{ days }} days, all businesses</p>
+  </div>
+  <nav class="segmented" aria-label="Period">
+    {% for d in (7, 30, 90) %}<a href="/platform/usage?days={{ d }}" {% if d == days %}aria-current="page"{% endif %}>{{ d }} days</a>{% endfor %}
+  </nav>
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="stat-label">Calls</span><span class="stat-value">{{ totals.calls }}</span></div>
+  <div class="stat"><span class="stat-label">Call minutes</span><span class="stat-value">{{ '%.0f'|format(totals.minutes) }}</span></div>
+  <div class="stat"><span class="stat-label">Orders</span><span class="stat-value">{{ totals.orders }}</span><span class="stat-sub">{{ format_money(totals.order_cents) }}</span></div>
+  <div class="stat"><span class="stat-label">Messages taken</span><span class="stat-value">{{ totals.messages }}</span></div>
+  <div class="stat"><span class="stat-label">Est. AI cost</span><span class="stat-value">{{ format_money(totals.cost_cents) }}</span><span class="stat-sub">at {{ format_money(rate) }}/min</span></div>
+</div>
+
+<section class="card" aria-label="Usage by business">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Business</th><th scope="col" class="num">Calls</th><th scope="col" class="num">Minutes</th>
+          <th scope="col" class="num">Orders</th><th scope="col" class="num">Order value</th>
+          <th scope="col" class="num">Messages</th><th scope="col" class="num">Handed to staff</th><th scope="col" class="num">Est. AI cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows|sort(attribute='seconds', reverse=True) %}
+        <tr>
+          <td><a href="/platform/businesses/{{ r.business.id }}">{{ r.business.name }}</a></td>
+          <td class="num">{{ r.calls }}</td>
+          <td class="num">{{ '%.1f'|format(r.minutes) }}</td>
+          <td class="num">{{ r.orders if r.business.takes_orders else '—' }}</td>
+          <td class="num">{{ format_money(r.order_cents, r.business.currency) if r.business.takes_orders else '—' }}</td>
+          <td class="num">{{ r.messages }}</td>
+          <td class="num">{{ r.escalated }}</td>
+          <td class="num">{{ format_money(r.ai_cost_cents(rate)) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="muted">No businesses yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small">AI cost is an estimate from call minutes (set <code>AI_COST_CENTS_PER_MINUTE</code>). Check the OpenAI billing page for actual spend.</p>
+</section>
+{% endblock %}

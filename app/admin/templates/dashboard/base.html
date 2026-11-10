@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block title %}{{ b.name }} · VanakkamIQ{% endblock %}
+{% block body %}
+{% from "shared/_ui.html" import brand %}
+{% macro tab(key, href, label, badge=0, badge_label='') -%}
+<a href="{{ href }}" {% if active == key %}aria-current="page"{% endif %}>{{ label }}{% if badge %} <span class="badge" aria-label="{{ badge }} {{ badge_label }}">{{ badge }}</span>{% endif %}</a>
+{%- endmacro %}
+<header class="topbar">
+  {{ brand('/app', b.name) }}
+  <div class="topbar-right">
+    <span class="muted small">{{ staff.user.email }}</span>
+    <form method="post" action="/app/logout">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn-link btn" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>
+<nav class="tabs" aria-label="Dashboard">
+  <div class="tabs-inner">
+    {% if b.takes_orders %}{{ tab('orders', '/app/orders', 'Orders', counts.new_orders, 'new') }}{% endif %}
+    {{ tab('calls', '/app/calls', 'Calls', counts.live, 'live') }}
+    {{ tab('callbacks', '/app/callbacks', 'Messages', counts.callbacks, 'to call back') }}
+    {{ tab('customers', '/app/customers', 'Customers') }}
+    {% if b.takes_orders %}{{ tab('catalog', '/app/catalog', btype.catalog) }}{% endif %}
+    {{ tab('faqs', '/app/faqs', 'Saved answers') }}
+    {% if staff.is_owner %}{{ tab('settings', '/app/settings', 'Settings') }}{% endif %}
+  </div>
+</nav>
+{% if not b.is_active %}
+<div class="banner" role="status">Calls are paused: VanakkamIQ isn't answering for {{ b.name }} right now. Contact VanakkamIQ to turn it back on.</div>
+{% endif %}
+<main class="page">
+  {% block content %}{% endblock %}
+</main>
+{% endblock %}

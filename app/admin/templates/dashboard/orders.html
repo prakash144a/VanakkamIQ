@@ -1,0 +1,18 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Orders · {{ b.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Orders</h1>
+    <p class="muted">Phone orders appear here the moment they're confirmed.</p>
+  </div>
+  <button class="btn" type="button" data-sound-toggle aria-pressed="false">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+    <span data-sound-label>Turn on sound alerts</span>
+  </button>
+</div>
+
+<div id="board" data-poll="/app/orders/board" data-poll-seconds="5" aria-live="polite">
+  {% include "dashboard/_board.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}Order #{{ o.number }} · {{ b.name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><meta http-equiv="refresh" content="{{ 60 if o.status in ('confirmed', 'in_progress', 'ready') else 3600 }}">{% endblock %}
+{% block body %}
+<main class="public-wrap">
+  <div class="card public-card">
+    <p class="muted small">{{ b.name }}</p>
+    <h1>Order #{{ o.number }}</h1>
+
+    {% if o.status == 'cancelled' %}
+    <div class="alert alert-error" role="status"><strong>This order was cancelled.</strong><span>Questions? {% if phone %}Call us at <a href="tel:{{ phone }}">{{ phone }}</a>.{% else %}Give us a call.{% endif %}</span></div>
+    {% else %}
+    <ol class="progress" aria-label="Order progress">
+      {% for step in steps %}
+      <li class="{{ 'done' if loop.index0 < reached else ('current' if loop.index0 == reached else '') }}" {% if loop.index0 == reached %}aria-current="step"{% endif %}>
+        <span class="progress-dot" aria-hidden="true"></span>
+        <span>{{ status_label(btype, step, o.fulfillment) if step != 'confirmed' else 'Order received' }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="status-now" role="status">
+      {% if o.status == 'confirmed' %}We've got your order.
+      {% elif o.status == 'in_progress' %}We're working on your order now.
+      {% elif o.status == 'ready' %}{{ "It's on its way!" if o.fulfillment == 'delivery' else "It's ready! See you soon." }}
+      {% else %}All done. Thank you{{ ', ' ~ o.customer_name if o.customer_name }}!{% endif %}
+    </p>
+    {% endif %}
+
+    <div>
+      {% for li in o.items %}
+      <div class="menu-item">
+        <span>{{ li.quantity }} × {{ li.name }}{% if li.modifiers %}<span class="muted small"> · {{ li.modifiers | map(attribute='name') | join(', ') }}</span>{% endif %}</span>
+        <span>{{ format_money(li.line_total_cents, b.currency) }}</span>
+      </div>
+      {% endfor %}
+      {% if o.tax_cents %}<div class="menu-item muted"><span>Tax</span><span>{{ format_money(o.tax_cents, b.currency) }}</span></div>{% endif %}
+      <div class="menu-item"><strong>Total</strong><strong>{{ format_money(o.total_cents, b.currency) }}</strong></div>
+    </div>
+
+    <p class="muted small">
+      {{ o.fulfillment|capitalize }}{% if o.requested_time %} · {{ o.requested_time }}{% endif %}
+      {% if placed %} · placed {{ placed.strftime('%b %d, %I:%M %p') }}{% endif %}
+    </p>
+    {% if o.fulfillment == 'pickup' and b.address %}<p><strong>Pick up at</strong><br>{{ b.address }}</p>{% endif %}
+    {% if phone %}<a class="btn" href="tel:{{ phone }}">Call {{ b.name }}</a>{% endif %}
+  </div>
+  <p class="muted small" style="text-align:center">Answered by VanakkamIQ</p>
+</main>
+{% endblock %}

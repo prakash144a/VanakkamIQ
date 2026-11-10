@@ -1,0 +1,38 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Customers · {{ b.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Customers</h1>
+    <p class="muted">Everyone who has called. The AI greets returning callers by name and reads your notes.</p>
+  </div>
+  <form method="get" action="/app/customers" class="row search" role="search">
+    <label class="sr-only" for="q">Search customers</label>
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="Name or phone number">
+    <button class="btn" type="submit">Search</button>
+  </form>
+</div>
+
+<section class="card" aria-label="Customers">
+  {% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Name</th><th scope="col">Phone</th>{% if b.takes_orders %}<th scope="col" class="num">Orders</th>{% endif %}<th scope="col">Last call</th><th scope="col">Notes</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a href="/app/customers/{{ row.c.id }}"><strong>{{ row.c.name or 'Name not known' }}</strong></a></td>
+          <td>{{ row.c.phone }}</td>
+          {% if b.takes_orders %}<td class="num">{{ row.c.order_count }}</td>{% endif %}
+          <td>{{ row.last.strftime('%b %d, %Y') if row.last else '—' }}</td>
+          <td class="muted small">{{ (row.c.notes or '')|truncate(60) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">{{ 'No customers match "' ~ q ~ '".' if q else 'No callers yet.' }}</p>
+  {% endif %}
+</section>
+{% endblock %}

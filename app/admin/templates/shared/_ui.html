@@ -1,0 +1,53 @@
+{% macro brand(href, sub) -%}
+<a class="brand" href="{{ href }}">
+  <span class="brand-mark" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2"/></svg>
+  </span>
+  <span>
+    <span class="brand-name">VanakkamIQ</span>
+    <span class="brand-sub">{{ sub }}</span>
+  </span>
+</a>
+{%- endmacro %}
+
+{% macro status_chip(status) -%}
+{% if status == 'completed' %}<span class="chip chip-success">Completed</span>
+{% elif status == 'active' %}<span class="chip chip-live"><span class="dot"></span>Live</span>
+{% elif status == 'escalated' %}<span class="chip chip-accent">Handed to staff</span>
+{% elif status == 'abandoned' %}<span class="chip">Order not finished</span>
+{% elif status == 'failed' %}<span class="chip">Failed</span>
+{% else %}<span class="chip">{{ status }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro error_list(errors) -%}
+{% if errors %}
+<div class="alert alert-error" role="alert" id="errors" tabindex="-1" data-focus>
+  <strong>Please fix {{ errors|length }} thing{{ '' if errors|length == 1 else 's' }}:</strong>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro calls_table(rows, b, base) -%}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th scope="col">When</th><th scope="col">Caller</th><th scope="col">Length</th><th scope="col">Outcome</th><th scope="col">Summary</th></tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><a href="{{ base }}/{{ row.c.id }}"><strong>{{ row.when.strftime('%b %d, %I:%M %p') if row.when else '—' }}</strong></a></td>
+        <td>{{ row.c.caller_phone or 'Hidden' }}</td>
+        <td>{{ row.duration }}</td>
+        <td>{{ status_chip(row.c.status) }}</td>
+        <td>
+          {% if row.order and row.order.number %}<strong>Order #{{ row.order.number }}</strong> · {{ format_money(row.order.total_cents, b.currency) }}<br>{% endif %}
+          <span class="muted small">{{ row.c.summary or '' }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}

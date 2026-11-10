@@ -1,26 +1,14 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}VanakkamIQ Platform{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="/static/theme.css">
-</head>
-<body>
+{% extends "layout.html" %}
+{% block title %}VanakkamIQ Platform{% endblock %}
 {% block body %}
+{% from "shared/_ui.html" import brand %}
 <header class="topbar">
-  <a class="brand" href="/platform">
-    <span class="brand-mark" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2"/></svg>
-    </span>
-    <span>
-      <span class="brand-name">VanakkamIQ</span>
-      <span class="brand-sub">Platform admin</span>
-    </span>
-  </a>
+  {{ brand('/platform', 'Platform admin') }}
+  <nav class="topnav" aria-label="Platform">
+    <a href="/platform" {% if section == 'businesses' or section is not defined %}aria-current="page"{% endif %}>Businesses</a>
+    <a href="/platform/usage" {% if section == 'usage' %}aria-current="page"{% endif %}>Usage</a>
+    <a href="/platform/admins" {% if section == 'admins' %}aria-current="page"{% endif %}>Admins</a>
+  </nav>
   <div class="topbar-right">
     <span class="muted small">{{ admin.email }}</span>
     <form method="post" action="/platform/logout">
@@ -33,5 +21,3 @@
   {% block content %}{% endblock %}
 </main>
 {% endblock %}
-</body>
-</html>

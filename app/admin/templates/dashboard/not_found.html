@@ -1,0 +1,9 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Not found · {{ b.name }}{% endblock %}
+{% block content %}
+<section class="card" style="align-items:flex-start">
+  <h1>Not found</h1>
+  <p class="muted">It may have been removed, or the link is wrong.</p>
+  <a class="btn" href="/app">Back to the dashboard</a>
+</section>
+{% endblock %}

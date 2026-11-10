@@ -10,7 +10,7 @@ async def start_transfer(ctx: ToolContext, reason: str) -> dict:
     async with ctx.session_factory() as db:
         business = await db.get(Business, ctx.business_id)
         if not business.handoff_phone or not is_open(business):
-            why = "the restaurant is closed right now" if business.handoff_phone else "no team member is available by phone"
+            why = "we're closed right now" if business.handoff_phone else "no team member is available by phone"
             return {
                 "ok": False,
                 "reason": why,
@@ -55,5 +55,6 @@ async def request_callback(ctx: ToolContext, name: str | None, phone: str | None
     if name:
         ctx.state.setdefault("customer_name", name)
     await ctx.notifier.callback_requested(business, name, callback_phone, message)
+    await ctx.notifier.callback_received(business, callback_phone)
     ctx.bus.publish(ctx.business_id, {"type": "callback.requested", "conversation_id": ctx.conversation_id})
     return {"ok": True, "instruction": "Confirm a team member will call them back soon, then ask if there's anything else."}

@@ -31,6 +31,12 @@ param openaiWebhookSecret string = ''
 @secure()
 param telnyxApiKey string = ''
 
+@secure()
+@description('Azure Communication Services email: endpoint=https://...;accesskey=... (sign-in codes).')
+param acsConnectionString string = ''
+@description('Sender address for sign-in code emails (must be a verified ACS sender).')
+param acsSender string = 'DoNotReply@nativemindsai.com'
+
 var suffix = uniqueString(resourceGroup().id)
 var acrName = toLower('${appName}${suffix}')
 
@@ -41,6 +47,7 @@ var secretDefs = [
   { name: 'openai-api-key', env: 'OPENAI_API_KEY', value: openaiApiKey }
   { name: 'openai-webhook-secret', env: 'OPENAI_WEBHOOK_SECRET', value: openaiWebhookSecret }
   { name: 'telnyx-api-key', env: 'TELNYX_API_KEY', value: telnyxApiKey }
+  { name: 'acs-connection-string', env: 'ACS_CONNECTION_STRING', value: acsConnectionString }
 ]
 var presentSecrets = filter(secretDefs, s => !empty(s.value))
 var appSecrets = map(presentSecrets, s => { name: s.name, value: s.value })
@@ -49,6 +56,7 @@ var plainEnv = [
   { name: 'APP_ENV', value: 'production' }
   { name: 'DATABASE_SCHEMA', value: databaseSchema }
   { name: 'OPENAI_PROJECT_ID', value: openaiProjectId }
+  { name: 'ACS_SENDER', value: acsSender }
 ]
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {

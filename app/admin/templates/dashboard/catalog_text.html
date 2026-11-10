@@ -1,0 +1,32 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Edit {{ btype.catalog|lower }} as text · {{ b.name }}{% endblock %}
+{% block content %}
+{% from "shared/_ui.html" import error_list %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <a href="/app/catalog" class="small">← {{ btype.catalog }}</a>
+    <h1>Edit {{ btype.catalog|lower }} as text</h1>
+    <p class="muted">Handy for big changes, or for pasting a whole new list. Saving replaces everything.</p>
+  </div>
+</div>
+
+{{ error_list(errors) }}
+
+<form method="post" action="/app/catalog/text" class="stack" data-confirm="Replace the whole {{ btype.catalog|lower }} with this text?">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <section class="card">
+    <p class="hint">
+      One item per line: <code>Name | price | tags | aka: other names | Group*: Option, Option +1.50</code>.
+      <code># Section</code> starts a section.
+    </p>
+    <div class="field">
+      <label for="catalog_text">{{ btype.catalog }}</label>
+      <textarea id="catalog_text" name="catalog_text" rows="22" placeholder="{{ btype.catalog_example }}">{{ text }}</textarea>
+    </div>
+  </section>
+  <div class="row">
+    <button class="btn btn-primary" type="submit">Replace {{ btype.catalog|lower }}</button>
+    <a class="btn" href="/app/catalog">Cancel</a>
+  </div>
+</form>
+{% endblock %}

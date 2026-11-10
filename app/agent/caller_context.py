@@ -21,7 +21,7 @@ class CallerContext:
 
     @property
     def is_returning(self) -> bool:
-        return self.customer_id is not None and self.order_count > 0
+        return self.customer_id is not None
 
 
 async def load_caller_context(
@@ -48,8 +48,8 @@ async def load_caller_context(
 def caller_context_text(ctx: CallerContext) -> str:
     if ctx.customer_id is None:
         hint = f' Caller ID shows the name "{ctx.display_name}" (unverified).' if ctx.display_name else ""
-        return f"This appears to be a new caller.{hint} Ask for their name when you take the order."
-    parts = [f"Returning customer: {ctx.name or 'name not on file'}."]
+        return f"This appears to be a new caller.{hint} Ask for their name when it's needed (an order or a message)."
+    parts = [f"Returning caller: {ctx.name or 'name not on file'}."]
     if ctx.order_count:
         parts.append(f"They have ordered {ctx.order_count} time(s) before.")
     if ctx.last_order_items:

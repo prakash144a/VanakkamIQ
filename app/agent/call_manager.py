@@ -9,13 +9,13 @@ from collections.abc import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.agent.assistant import build_assistant
 from app.agent.call_session import CallSession
 from app.agent.caller_context import load_caller_context
 from app.config import Settings
 from app.db.models import Business, Conversation, PhoneNumber
 from app.events import EventBus
 from app.notify.sms import Notifier
-from app.verticals.registry import get_vertical
 from app.voice.base import VoiceConnection
 from app.voice.openai_sip.calls_api import RealtimeCallsAPI
 from app.voice.session_config import build_realtime_session
@@ -62,16 +62,16 @@ class CallManager:
             phone = await db.scalar(select(PhoneNumber).where(PhoneNumber.e164 == number))
             if phone is not None:
                 return await db.get(Business, phone.business_id)
-        if self.settings.single_restaurant_fallback:
+        if self.settings.single_business_fallback:
             # Telnyx's Translated Number replaces the dialed number with the OpenAI project ID, so
             # the SIP headers may not say which number was called. With exactly one active
-            # restaurant that has a number, it must be that one. With two or more, never guess.
+            # business that has a number, it must be that one. With two or more, never guess.
             ids = list(await db.scalars(
                 select(Business.id).join(PhoneNumber, PhoneNumber.business_id == Business.id)
                 .where(Business.is_active.is_(True)).distinct()
             ))
             if len(ids) == 1:
-                log.info("Dialed number not in SIP headers; using the only active restaurant (id %s)", ids[0])
+                log.info("Dialed number not in SIP headers; using the only active business (id %s)", ids[0])
                 return await db.get(Business, ids[0])
         return None
 
@@ -90,10 +90,8 @@ class CallManager:
 
             phone = caller_number(sip_headers)
             caller = await load_caller_context(db, business.id, phone, caller_display_name(sip_headers))
-            vertical = get_vertical(business.vertical)
-            registry = vertical.build_registry()
-            instructions = await vertical.build_instructions(db, business, caller)
-            greeting = vertical.greeting_instruction(business, caller)
+            assistant = await build_assistant(db, business, caller)
+            registry, instructions, greeting = assistant.registry, assistant.instructions, assistant.greeting
 
             convo = Conversation(
                 business_id=business.id, customer_id=caller.customer_id, channel="voice",

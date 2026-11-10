@@ -21,9 +21,9 @@ def test_parses_categories_items_and_options():
     assert chicken.aliases == ["chicken biriyani", "biriyani"]
     spice, addons = chicken.groups
     assert (spice.name, spice.min_select, spice.max_select) == ("Spice level", 1, 1)
-    assert [o for o, _ in spice.options] == ["Mild", "Medium", "Hot"]
+    assert [o for o, _, _ in spice.options] == ["Mild", "Medium", "Hot"]
     assert (addons.name, addons.min_select, addons.max_select) == ("Add-ons", 0, 2)
-    assert addons.options == [("Extra raita", 150), ("Boiled egg", 200)]
+    assert addons.options == [("Extra raita", 150, True), ("Boiled egg", 200, True)]
     assert categories[0].items[1].tags == ["vegetarian", "vegan option"]
     assert categories[1].items[1].price_cents == 350
 

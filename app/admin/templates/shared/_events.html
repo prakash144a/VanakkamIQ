@@ -1,0 +1,16 @@
+{% for item in events %}{% set e = item.e %}
+{% if e.role == 'caller' %}
+<li class="msg msg-caller" data-id="{{ e.id }}"><span class="msg-who">Caller</span><span class="msg-bubble">{{ e.text }}</span></li>
+{% elif e.role == 'agent' %}
+<li class="msg msg-agent" data-id="{{ e.id }}"><span class="msg-who">VanakkamIQ</span><span class="msg-bubble">{{ e.text }}</span></li>
+{% elif e.role == 'tool' %}
+<li class="msg-tool" data-id="{{ e.id }}">
+  <details>
+    <summary>Action: <code>{{ e.tool_name }}</code>{% if e.data and e.data.result and e.data.result.ok is sameas false %} <span class="muted">(not done)</span>{% endif %}</summary>
+    <pre>{{ e.data | tojson(indent=2) }}</pre>
+  </details>
+</li>
+{% else %}
+<li class="msg-tool muted small" data-id="{{ e.id }}">{{ e.text }}</li>
+{% endif %}
+{% endfor %}

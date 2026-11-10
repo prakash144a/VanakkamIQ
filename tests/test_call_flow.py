@@ -37,12 +37,12 @@ async def test_new_caller_places_pickup_order(services):
 
     body = json.loads(accept.calls.last.request.content)
     assert body["type"] == "realtime"
-    assert {t["name"] for t in body["tools"]} >= {"search_menu", "add_to_order", "confirm_order", "transfer_to_human"}
+    assert {t["name"] for t in body["tools"]} >= {"search_catalog", "add_to_order", "confirm_order", "transfer_to_human"}
     assert "Chicken Biryani" in body["instructions"]
     assert conn.responses[0].startswith("Greet the caller") and "Vanakkam!" in conn.responses[0]
 
     await conn.push(CallerTranscript("Hi, can I get two chicken biriyani please?"))
-    found = await conn.call_tool("search_menu", query="chicken biriyani")
+    found = await conn.call_tool("search_catalog", query="chicken biriyani")
     item_id = found["matches"][0]["item_id"]
     assert found["matches"][0]["name"] == "Chicken Biryani"
 
@@ -87,7 +87,7 @@ async def test_new_caller_places_pickup_order(services):
 async def test_returning_caller_gets_personal_greeting(services):
     accept = respx.post(url__regex=ACCEPT).mock(return_value=httpx.Response(200))
     _, task, conn = await start_call(services, "rtc_1", "+15551230000")
-    found = await conn.call_tool("search_menu", query="mango lassi")
+    found = await conn.call_tool("search_catalog", query="mango lassi")
     await conn.call_tool("add_to_order", item_id=found["matches"][0]["item_id"], quantity=1)
     await conn.call_tool("confirm_order", customer_name="Priya", fulfillment="pickup", caller_confirmed_readback=True)
     await end_call(conn, task)
@@ -95,7 +95,7 @@ async def test_returning_caller_gets_personal_greeting(services):
     _, task2, conn2 = await start_call(services, "rtc_2", "+15551230000")
     assert "Vanakkam, Priya!" in conn2.responses[0]
     assert "1 x Mango Lassi" in conn2.responses[0]
-    assert "Returning customer: Priya" in json.loads(accept.calls.last.request.content)["instructions"]
+    assert "Returning caller: Priya" in json.loads(accept.calls.last.request.content)["instructions"]
     await end_call(conn2, task2)
 
 
@@ -137,7 +137,7 @@ async def test_no_staff_number_offers_callback(services):
 
 @respx.mock
 async def test_unknown_number_is_rejected_when_fallback_is_off(services):
-    services.settings.single_restaurant_fallback = False
+    services.settings.single_business_fallback = False
     reject = respx.post(url__regex=REJECT).mock(return_value=httpx.Response(200))
     session, _, _ = await start_call(services, "rtc_x", "+15551230000", to_number="+15550000000")
     assert session is None
@@ -182,7 +182,7 @@ async def test_two_restaurants_never_guess(services):
 async def test_unconfirmed_order_marks_call_abandoned(services):
     respx.post(url__regex=ACCEPT).mock(return_value=httpx.Response(200))
     _, task, conn = await start_call(services, "rtc_1", "+15551230000")
-    found = await conn.call_tool("search_menu", query="masala dosa")
+    found = await conn.call_tool("search_catalog", query="masala dosa")
     await conn.call_tool("add_to_order", item_id=found["matches"][0]["item_id"], quantity=1)
     await end_call(conn, task)
     async with services.session_factory() as db:

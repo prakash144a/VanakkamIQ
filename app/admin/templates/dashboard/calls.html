@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Calls · {{ b.name }}{% endblock %}
+{% block content %}
+{% from "shared/_ui.html" import calls_table %}
+<div class="page-head">
+  <div class="stack" style="gap:4px">
+    <h1>Calls</h1>
+    <p class="muted">Every call the AI answered · times in {{ b.timezone }}</p>
+  </div>
+</div>
+
+<section class="card" aria-labelledby="live-h">
+  <h2 id="live-h">On the phone now</h2>
+  <div data-poll="/app/calls/live" data-poll-seconds="5" aria-live="polite">
+    {% include "dashboard/_live.html" %}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="recent-h">
+  <div class="card-head">
+    <h2 id="recent-h">Recent calls</h2>
+    <nav class="segmented" aria-label="Filter calls">
+      <a href="/app/calls" {% if not show %}aria-current="page"{% endif %}>All</a>
+      <a href="/app/calls?show=escalated" {% if show == 'escalated' %}aria-current="page"{% endif %}>Handed to staff</a>
+      {% if b.takes_orders %}<a href="/app/calls?show=abandoned" {% if show == 'abandoned' %}aria-current="page"{% endif %}>Unfinished orders</a>{% endif %}
+    </nav>
+  </div>
+  {% if rows %}{{ calls_table(rows, b, '/app/calls') }}{% else %}<p class="muted">No calls yet.</p>{% endif %}
+</section>
+{% endblock %}
